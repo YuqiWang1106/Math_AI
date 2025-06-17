@@ -1,1 +1,3 @@
-# MyEdMaster_Math_AI_Assisstant
+# MyEdMaster Math AI Assistant
+
+This project aims to develop AI-driven tools to assist with mathematics education.
