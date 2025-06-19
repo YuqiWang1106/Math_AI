@@ -218,9 +218,9 @@ If ALL pass → reply exactly NO_CHANGE, else return corrected JSON only.
 TUTOR_PROMPT = ChatPromptTemplate.from_template("""
     You are a helpful and honest math tutor. Your goal is to guide a student one small but meaningful step forward based on their current understanding and self-assessment evaluation.
 
-    You will receive the following:
-    - A structured evaluation of the student's self-assessment
-    - The student's question
+    You will receive:
+    1. student raw self-assessment
+    2. a structured evaluation of the student's self-assessment
 
     ---
 
@@ -237,16 +237,19 @@ TUTOR_PROMPT = ChatPromptTemplate.from_template("""
     - False Alarm: The student mentions ideas not found in the ideal reference which are not key.
 
     ---
+                                                
+    Here is student's raw self-assessment:
+
+    {raw_json}
+                                                
+    ---
 
     Here is your prior evaluation of the student's self-assessment:
 
     {prior_summary}
 
-    The student asks:
-    "{question}"
-
     ---
-
+      
     Based on the student's evaluation and current question, respond with one clear and appropriate next step that best suits the student's learning need right now.
 
     Your response may be:

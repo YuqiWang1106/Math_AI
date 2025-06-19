@@ -6,11 +6,17 @@ function ChatPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
 
   useEffect(() => {
-    const data = localStorage.getItem("assessmentData");
-    if (data) {
-      setAssessment(JSON.parse(data));
+    localStorage.removeItem("chatHistory");
+    const rawAssess = localStorage.getItem("assessmentData");
+    if (rawAssess) {
+      setAssessment(JSON.parse(rawAssess));
+    }
+    const rawHistory = localStorage.getItem("chatHistory");
+    if (rawHistory) {
+      setChatHistory(JSON.parse(rawHistory));
     }
   }, []);
 
@@ -20,9 +26,7 @@ function ChatPage() {
     try {
       const res = await fetch("http://localhost:8000/api/ask/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           student_id: assessment.student_id,
           question,
@@ -30,7 +34,14 @@ function ChatPage() {
         }),
       });
       const data = await res.json();
-      setAnswer(data.response);
+      const responseText = data.response;
+      setAnswer(responseText);
+
+      const newEntry = { question, answer: responseText };
+      const updatedHistory = [...chatHistory, newEntry];
+      setChatHistory(updatedHistory);
+      localStorage.setItem("chatHistory", JSON.stringify(updatedHistory));
+      setQuestion("");
     } catch (error) {
       console.error("Error asking question:", error);
     } finally {
@@ -47,6 +58,13 @@ function ChatPage() {
       <h3>Student: {assessment.student_id}</h3>
       <p><strong>Problem:</strong> {assessment.json_data.self_assessment.problem}</p>
 
+      {chatHistory.map((entry, idx) => (
+        <div key={idx} className="mb-3">
+          <div><strong>You:</strong> {entry.question}</div>
+          <div><strong>AI Tutor:</strong> {entry.answer}</div>
+        </div>
+      ))}
+
       <div className="mb-3">
         <label>Your question:</label>
         <textarea
@@ -54,15 +72,19 @@ function ChatPage() {
           rows={3}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-        ></textarea>
-        <button className="btn btn-success mt-2" onClick={handleAsk} disabled={loading}>
+        />
+        <button
+          className="btn btn-success mt-2"
+          onClick={handleAsk}
+          disabled={loading}
+        >
           {loading ? "Thinking..." : "Ask AI Tutor"}
         </button>
       </div>
 
       {answer && (
         <div className="mt-4">
-          <h5>AI Tutor's Answer:</h5>
+          <h5>Last answer:</h5>
           <div className="alert alert-primary" style={{ whiteSpace: "pre-wrap" }}>
             {answer}
           </div>

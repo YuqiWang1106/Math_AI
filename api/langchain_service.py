@@ -4,21 +4,60 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.agents import Tool, initialize_agent, AgentType
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
-from langchain.chains import LLMChain
-
-import os
+from langchain.chains import LLMChain, ConversationChain
+from langchain.memory import ConversationBufferMemory
 
 from .prompts import (
     EVALUATOR_SYSTEM_PROMPT,
     REFINER_PROMPT,
     REVIEWER_PROMPT,
-    TUTOR_PROMPT
+    TUTOR_PROMPT,
 )
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 llm = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
+
+CHAT_SESSIONS = {} # Global Dictionary (student_id as key, chat history as value)
+
+def get_chat_agent(student_id: str, assessment_data: dict, first_question: str):
+    """
+    If it is called for the first time: Evaluate first + create the conversation agent with memory;
+    Otherwise: Directly return the existing agent
+    """
+    # Check Existence of Chat History (student_id as condition)
+    # ----- Not First Time Situation ----- #
+    if student_id in CHAT_SESSIONS:
+        return CHAT_SESSIONS[student_id]["agent"], False
+
+    # ----- First Time Situation ----- #
+
+    student_text = create_self_assessment_text(assessment_data) # Convert raw JSON to long text
+    eval_result = evaluate_self_assessment(student_text, student_id) # ReAct Loop Evaluation --> Get Structured JSON result
+    eval_json_str = json.dumps(eval_result, ensure_ascii=False, indent=2)
+    raw_json_str  = json.dumps(assessment_data, ensure_ascii=False, indent=2)
+
+    # System Prompt (include Evaluation Report JSON, and store in memory)
+    system_prompt = TUTOR_PROMPT.format(
+        prior_summary=eval_json_str,
+        raw_json=raw_json_str
+        )
+    # Initiate LongChain Memory
+    memory = ConversationBufferMemory(return_messages=True)
+
+    memory.chat_memory.add_message({"role": "system", "content": system_prompt}) # Manually store system prompt
+    memory.chat_memory.add_message({"role": "user", "content": first_question}) # Manuallyh store student's first question
+
+    # Create ConversationChain (Chat Agent)
+        # 1. Use chat_chain.run(input_text)
+        # 2. Get memory -> Connect with input_text -> Send to LLM -> Get response -> Automatically store back to memory
+    chat_chain = ConversationChain(llm=llm, memory=memory)
+
+    # Write into cache
+    CHAT_SESSIONS[student_id] = {"agent": chat_chain, "initialized": True}
+    return chat_chain, True 
+
 
 # Tools for ReAct agent
 CURRENT_ASSESSMENT_TEXT = ""
@@ -128,34 +167,13 @@ def create_self_assessment_text(assessment: dict) -> str:
 
     return text.strip()
 
-# Generate follow-up answer for student's question
-def answer_student_question(question: str, student_id: str, assessment_data: dict) -> str:
-    """
-    Run full pipeline: evaluate the self-assessment, then use that evaluation
-    to answer the student's follow-up question.
-    
-    Args:
-        question: the student's question.
-        student_id: for logging (future use, not used in logic now).
-        assessment_data: the raw JSON of student's self-assessment.
-    
-    Returns:
-        One short AI-generated tutoring response.
-    """
-    # Step 1: Create evaluable text
-    student_text = create_self_assessment_text(assessment_data)
 
-    # Step 2: Run evaluation using LangChain ReAct agent
-    eval_result = evaluate_self_assessment(student_text, student_id)
+def ask_with_memory(student_id: str, assessment_data: dict, question: str) -> str:
+    agent, first_time = get_chat_agent(student_id, assessment_data, question)
 
-    # Step 3: Prepare tutor prompt with evaluation result
-    eval_json_str = json.dumps(eval_result, ensure_ascii=False, indent=2)
 
-    # Step 4: Use tutoring prompt to generate response
-    tutor_chain = LLMChain(llm=llm, prompt=TUTOR_PROMPT)
-    response = tutor_chain.invoke({
-        "question": question,
-        "prior_summary": eval_json_str
-    })["text"]
-
-    return response
+    if first_time:
+        response = agent.run("")  # The first question has manually written into memory, so it is empty of input here
+    else:
+        response = agent.run(question)
+    return response.strip()
