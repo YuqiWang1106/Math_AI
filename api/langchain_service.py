@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 from langchain.agents import Tool, initialize_agent, AgentType
-from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain.chains import LLMChain, ConversationChain
 from langchain.memory import ConversationBufferMemory
 
@@ -170,7 +169,6 @@ def create_self_assessment_text(assessment: dict) -> str:
 
 def ask_with_memory(student_id: str, assessment_data: dict, question: str) -> str:
     agent, first_time = get_chat_agent(student_id, assessment_data, question)
-
 
     if first_time:
         response = agent.run("")  # The first question has manually written into memory, so it is empty of input here

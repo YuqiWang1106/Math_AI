@@ -1,0 +1,379 @@
+/* Modern Educational Assessment Page Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #1e293b;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.container-fluid {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation Bar */
+.nav-part {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-part:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Main Content Layout */
+.main-content-part {
+  flex: 1;
+  display: flex;
+  min-height: calc(100vh - 80px);
+}
+
+/* Left Side - Information Panel */
+.left-side {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  padding: 3rem;
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 
+    inset -1px 0 0 rgba(255, 255, 255, 0.1),
+    4px 0 20px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow-y: auto;
+  max-height: calc(100vh - 80px);
+  width: 45%;
+  flex: 0 0 45%;
+}
+
+.left-side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+  opacity: 0.8;
+}
+
+.left-side p {
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #475569;
+  text-align: justify;
+  transition: color 0.3s ease;
+}
+
+.left-side p strong {
+  color: #1e293b;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Right Side - Form Panel */
+.right-side {
+  background: #ffffff;
+  padding: 3rem;
+  position: relative;
+  overflow-y: auto;
+  max-height: calc(100vh - 80px);
+  width: 55%;
+  flex: 0 0 55%;
+}
+
+.right-side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6);
+  opacity: 0.8;
+}
+
+/* Form Title */
+.right-side h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2rem;
+  position: relative;
+  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.right-side h3::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+}
+
+/* Form Groups */
+.mb-3 {
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.6s ease forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.mb-3:nth-child(1) { animation-delay: 0.1s; }
+.mb-3:nth-child(2) { animation-delay: 0.2s; }
+.mb-3:nth-child(3) { animation-delay: 0.3s; }
+.mb-3:nth-child(4) { animation-delay: 0.4s; }
+.mb-3:nth-child(5) { animation-delay: 0.5s; }
+.mb-3:nth-child(6) { animation-delay: 0.6s; }
+
+/* Labels */
+label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+/* Form Controls */
+.form-control {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: none;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #969595;
+  background: #f7f7f7ce;
+  box-shadow: 3px 3px 3px rgba(195, 195, 195, 0.449);
+}
+
+.form-control:hover:not(:focus) {
+  border-color: #94a3b8;
+  background: #f9fafb;
+}
+
+/* Textarea Specific Styles */
+textarea.form-control {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.mt-1 {
+  margin-top: 0.5rem;
+}
+
+/* Submit Button Container */
+.text-end {
+  margin-top: 3rem;
+  text-align: right;
+}
+
+/* Submit Button */
+.btn {
+  font-family: inherit;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.9rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 1rem 2.5rem;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.left-side {
+  animation: slideInLeft 0.8s ease forwards;
+}
+
+.right-side {
+  animation: slideInRight 0.8s ease forwards;
+}
+
+/* Scrollbar Styling */
+.left-side::-webkit-scrollbar,
+.right-side::-webkit-scrollbar {
+  width: 6px;
+}
+
+.left-side::-webkit-scrollbar-track,
+.right-side::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.left-side::-webkit-scrollbar-thumb,
+.right-side::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  border-radius: 3px;
+}
+
+.left-side::-webkit-scrollbar-thumb:hover,
+.right-side::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-content-part {
+    flex-direction: column;
+  }
+  
+  .left-side,
+  .right-side {
+    max-height: none;
+    padding: 2rem;
+  }
+  
+  .left-side {
+    border-right: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+}
+
+@media (max-width: 768px) {
+  .left-side,
+  .right-side {
+    padding: 1.5rem;
+  }
+  
+  .nav-part {
+    padding: 1rem;
+  }
+  
+  .right-side h3 {
+    font-size: 1.5rem;
+  }
+  
+  .btn-primary {
+    padding: 0.875rem 2rem;
+    width: 100%;
+  }
+}
+
+/* Loading States */
+.form-control.loading {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Focus Trap for Accessibility */
+.form-control:focus-visible {
+
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .form-control {
+    border-width: 3px;
+  }
+  
+  .btn-primary {
+    background: #1e40af;
+    border: 2px solid #1e293b;
+  }
+}

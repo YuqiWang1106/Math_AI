@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import '../css/TemplatePage.css';
 
 function Template_Page() {
   const navigate = useNavigate();
@@ -127,7 +128,7 @@ function Template_Page() {
             </p>
         </div>
 
-        <div className="col right-side">
+        <div className="col-5 right-side">
           <h3>Self Assessment</h3>
 
           <div className="mb-3">
