@@ -1,4 +1,4 @@
-# MyEdMaster_Math_AI_Assisstant
+# Adaptive ChatBot
 
 A full-stack application with a Django backend and React frontend.
 
