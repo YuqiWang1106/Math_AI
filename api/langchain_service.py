@@ -2,6 +2,7 @@ import os, json
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import Tool, initialize_agent, AgentType
 from langchain.chains import LLMChain, ConversationChain
 from langchain.memory import ConversationBufferMemory
@@ -15,8 +16,12 @@ from .prompts import (
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["GOOGLE_API_KEY"]  = os.getenv("GOOGLE_API_KEY")
 
-llm = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
+gpt_llm = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
+gemini_llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+
+llm = gpt_llm
 
 CHAT_SESSIONS = {} # Global Dictionary (student_id as key, chat history as value)
 
@@ -51,7 +56,7 @@ def get_chat_agent(student_id: str, assessment_data: dict, first_question: str):
     # Create ConversationChain (Chat Agent)
         # 1. Use chat_chain.run(input_text)
         # 2. Get memory -> Connect with input_text -> Send to LLM -> Get response -> Automatically store back to memory
-    chat_chain = ConversationChain(llm=llm, memory=memory)
+    chat_chain = ConversationChain(llm=gpt_llm, memory=memory)
 
     # Write into cache
     CHAT_SESSIONS[student_id] = {"agent": chat_chain, "initialized": True}
@@ -170,8 +175,26 @@ def create_self_assessment_text(assessment: dict) -> str:
 def ask_with_memory(student_id: str, assessment_data: dict, question: str) -> str:
     agent, first_time = get_chat_agent(student_id, assessment_data, question)
 
-    if first_time:
-        response = agent.run("")  # The first question has manually written into memory, so it is empty of input here
-    else:
-        response = agent.run(question)
-    return response.strip()
+    def _run(agent, text):
+        return agent.run(text).strip()
+
+    try:
+        if first_time:
+            return _run(agent, "")
+        return _run(agent, question)
+    except Exception as e_gpt:
+        try:
+            agent.llm = gemini_llm
+            CHAT_SESSIONS[student_id]["backend"] = "gemini"
+            if first_time:
+                return _run(agent, "")
+            return _run(agent, question)
+        except Exception as e_gem:
+            CHAT_SESSIONS[student_id]["backend"] = "gpt"
+            raise e_gpt
+         
+    # if first_time:
+    #     response = agent.run("")  # The first question has manually written into memory, so it is empty of input here
+    # else:
+    #     response = agent.run(question)
+    # return response.strip()
