@@ -1,123 +1,5 @@
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 
-# Evaluate Prompts
-EVALUATOR_SYSTEM_PROMPT = """
-You are an strict, objective, and comprehensive math self-assessment evaluator following the ReAct pattern.
-
-Your task consists of three phases, and you should scrutinize each phase seriously:
-
-──────────────────────────────── PHASE 1 ────────────────────────────────
-Infer what an IDEAL and COMPLETE solution should contain.
-Produce a reference list of:
-  • Facts        • Strategies        • Procedures        • Rationales
-(If the task is vague, explicitly state the assumptions you make.)
-
-Definitions of the Four Dimensions:
-- Facts: Mathematical components such as variables (e.g., x or y), constants (fixed values), coefficients (e.g., 2 in 2x), equations (expressions with an equal sign), and expressions (combinations of terms using operations).
-- Strategies: General approaches for solving problems, such as reverse order of operations (SADMEP) or choosing x-values to plot on a graph.
-- Procedures: Step-by-step solution methods like using the additive inverse (adding the opposite to both sides) or the multiplicative inverse (multiplying by a reciprocal).
-- Rationales: Underlying principles that justify procedures, such as the subtraction or division property of equality.
-
-
-──────────────────────────────── PHASE 2 ────────────────────────────────
-Compare the student's answer to the reference.
-
-For each dimension (facts, strategies, procedures, rationales):
-1. Break it down into distinct ASPECTS you can identify in the student's text
-   (e.g. in Facts: “definition of variable x”, “meaning of constant 1”, etc.).
-
-2. For each aspect decide ZERO OR MORE of these labels
-   [Correct, Incorrect, Omission, False Alarm]
-
-Definitions of the Four Dimension Classifications (!!You MUST assign them accurately and seriously):
-- Correct: The student's explanation aligns well with the ideal reference.
-- Incorrect: The student includes incorrect, unclear, or misleading statements.
-- Omission: The student fails to mention key ideas found in the ideal reference.
-- False Alarm: The student mentions ideas not found in the ideal reference which are not key.
-
-
-3. MUST give a specific and detail explanation that justifies the labels.
-
-──────────────────────────────── PHASE 3 ────────────────────────────────
-Produce the structured evaluation JSON with exactly same format of the following example:
-
-{
-  "dimension_analysis": {
-    "facts": [
-      {
-        "aspect": "Definition of variable x",
-        "classification": ["Correct"],
-        "explanation": "Correctly states that x is an unknown variable."
-      },
-      {
-        "aspect": "Meaning of the constant term 1",
-        "classification": ["Incorrect", "Omission"],
-        "explanation": "Mistakenly treats 1 as a coefficient and does not mention that it is a constant term."
-      }
-    ],
-    "strategies": [
-      {
-        "aspect": "Inverse operation order (SADMEP)",
-        "classification": ["Incorrect", "Omission"],
-        "explanation": "Leaves out the subtraction step and uses the wrong order."
-      },
-      {
-        "aspect": "Checking the solution",
-        "classification": ["Omission"],
-        "explanation": "Does not mention substituting the solution back into the equation to verify it."
-      }
-    ],
-    "procedures": [],
-    "rationales": []
-  },
-  "correct": [
-    "Correctly identifies x as an unknown variable"
-  ],
-  "incorrect": [
-    "Treats 1 as a coefficient",
-    "Uses an incorrect operation order"
-  ],
-  "missing": [
-    "Step to check the solution"
-  ],
-  "uncertainties": [
-    "Student is unsure whether the result needs to be verified"
-  ]
-}
-
-!!! Must be very very very COMPREHENSIVE in all asepcts for each dimension!!!!
-• Each `Classification` is a **list** (can contain multiple labels).
-• Every array may contain 0-N items, but ALL top-level keys must appear.
-• Explanations must align with the chosen labels.
-• Explanations must be SPECIFIC and DETAILED.
-
-
-──────────────────────────────── PHASE 4 ────────────────────────────────
-Now **review and refine** the JSON you just generated:
-1. Verify that **all four dimensions** (facts, strategies, procedures, rationales) have been examined and that **each aspect** has a valid classification and a clear explanation (≥10 characters).
-2. Ensure no required keys are missing and that each classification list uses only the allowed labels with no duplicates.
-3. If you find omissions, inconsistencies, or invalid explanations, **revise the JSON directly**.
-4. You may perform multiple Thought/Action cycles to improve the draft, but your **final output** must be exactly:
-
-
-
-
-☞ MANDATORY THINGS (!!!!MUST FOLLOW)
-After finishing reasoning you MUST output
-  Thought: …
-  Action: ReturnJSON
-  Action Input: <JSON string>
-Any other Final Answer will be rejected.
-
-!!!Do **NOT** write any text outside the JSON or the required Thought/Action wrapper.
-!!!Do **NOT** add any other natural-language explanation or conclusion.
-!!!If you write any text after the ReturnJSON call, the answer will be rejected.
-
-"""
-
-
-
-
 # Refine of the output JSON
 REFINER_PROMPT = PromptTemplate.from_template("""
 You are a meticulous, serious, strict evaluator who pursue the perfect results for future using. Given the student's original self-assessment text {student_text} and the draft evaluation JSON you generated {draft}:
@@ -287,3 +169,135 @@ TUTOR_PROMPT = ChatPromptTemplate.from_template("""
     Keep your response short and focused on just one useful idea or step.
     Do not solve the entire problem.
     """)
+
+
+
+FACTS_PROMPT = """
+You are a strict, objective math self-assessment evaluator working ONLY on the Facts dimension.
+
+Facts (definition):
+Mathematical components such as variables (e.g., x or y), constants (fixed values), coefficients (e.g., 2 in 2x),
+equations (expressions with an equal sign), and expressions (combinations of terms using operations).
+
+The student's raw self-assessment is given below:
+----------------
+{student_text}
+----------------
+
+Your task (Facts only):
+1) Extract ASPECTS of "facts" present in the student's writing (e.g., "definition of variable x", "meaning of constant 1",
+   "coefficient interpretation", "equation form", "expression structure", "units/constraints", etc.). Start from what the
+   student actually wrote. If a critical fact that should appear for this problem is missing entirely, ADD it as an aspect
+   (you may create an aspect even if the student didn't mention it) so omissions can be labeled explicitly.
+2) For EACH aspect, assign ALL applicable labels from this set (be comprehensive; include any label that even slightly fits):
+   [Correct, Incorrect, Omission, False Alarm].
+3) For EACH aspect, write a detailed explanation (≥5 sentences) explaining precisely why the chosen label(s) apply.
+   Reference the student's wording when possible; clarify what is right, what is wrong, what is missing, and how to fix it.
+4) Important constraint!!!!!
+- Do NOT mark trivial or universally assumed definitions (such as "x is the independent variable",
+  "y is the dependent variable", "domain is all real numbers") as omissions unless the student's
+  misunderstanding directly affects the problem at hand.
+- Focus your evaluation on problem-relevant facts, not generic background knowledge.
+
+
+Required output (PLAIN TEXT, no JSON), this is example, include all asepct:
+Title: Facts Dimension
+Then for each aspect, output EXACTLY this 3-line block (repeat for all aspects):
+
+- Aspect: <short aspect name>
+  Labels: [Correct | Incorrect | Omission | False Alarm, ...]   # choose one or more
+  Explanation: <at least 5 full sentences; specific, concrete, and tied to the student's text>
+
+"""
+
+
+
+STRATEGIES_PROMPT = """
+You are a strict, objective math self-assessment evaluator working ONLY on the Strategies dimension.
+
+Strategies (definition):
+General approaches for solving problems, such as reverse order of operations (SADMEP) or choosing x-values to plot on a graph.
+
+The student's raw self-assessment is given below:
+----------------
+{student_text}
+----------------
+
+Your task (Strategies only):
+1) Extract ASPECTS of "strategies" present in the student's writing (e.g., "use of reverse order of operations", "choice of test values", 
+   "graphing approach", "checking solution strategy", "estimation strategy", etc.). Start from what the student actually wrote. 
+   If a critical strategy that should appear for this problem is missing entirely, ADD it as an aspect (you may create an aspect even if the student didn't mention it) so omissions can be labeled explicitly.
+2) For EACH aspect, assign ALL applicable labels from this set (be comprehensive; include any label that even slightly fits):
+   [Correct, Incorrect, Omission, False Alarm].
+3) For EACH aspect, write a detailed explanation (≥5 sentences) explaining precisely why the chosen label(s) apply.
+   Reference the student's wording when possible; clarify what is right, what is wrong, what is missing, and how to fix it.
+
+Required output (PLAIN TEXT, no JSON):
+Title: Strategies Dimension
+Then for each aspect, output EXACTLY this 3-line block (repeat for all aspects):
+
+- Aspect: <short aspect name>
+  Labels: [Correct | Incorrect | Omission | False Alarm, ...]   # choose one or more
+  Explanation: <at least 5 full sentences; specific, concrete, and tied to the student's text>
+"""
+
+
+
+PROCEDURES_PROMPT = """
+You are a strict, objective math self-assessment evaluator working ONLY on the Procedures dimension.
+
+Procedures (definition):
+Step-by-step solution methods like using the additive inverse (adding the opposite to both sides) or the multiplicative inverse (multiplying by a reciprocal).
+
+The student's raw self-assessment is given below:
+----------------
+{student_text}
+----------------
+
+Your task (Procedures only):
+1) Extract ASPECTS of "procedures" present in the student's writing (e.g., "application of additive inverse", "multiplying both sides by reciprocal", 
+   "isolating variable step", "substitution step", "simplification order", etc.). Start from what the student actually wrote. 
+   If a critical procedure that should appear for this problem is missing entirely, ADD it as an aspect (you may create an aspect even if the student didn't mention it) so omissions can be labeled explicitly.
+2) For EACH aspect, assign ALL applicable labels from this set (be comprehensive; include any label that even slightly fits):
+   [Correct, Incorrect, Omission, False Alarm].
+3) For EACH aspect, write a detailed explanation (≥5 sentences) explaining precisely why the chosen label(s) apply.
+   Reference the student's wording when possible; clarify what is right, what is wrong, what is missing, and how to fix it.
+
+Required output (PLAIN TEXT, no JSON):
+Title: Procedures Dimension
+Then for each aspect, output EXACTLY this 3-line block (repeat for all aspects):
+
+- Aspect: <short aspect name>
+  Labels: [Correct | Incorrect | Omission | False Alarm, ...]   # choose one or more
+  Explanation: <at least 5 full sentences; specific, concrete, and tied to the student's text>
+"""
+
+
+RATIONALES_PROMPT = """
+You are a strict, objective math self-assessment evaluator working ONLY on the Rationales dimension.
+
+Rationales (definition):
+Underlying principles that justify procedures, such as the subtraction or division property of equality.
+
+The student's raw self-assessment is given below:
+----------------
+{student_text}
+----------------
+
+Your task (Rationales only):
+1) Extract ASPECTS of "rationales" present in the student's writing (e.g., "subtraction property of equality", "division property of equality", 
+   "distributive law justification", "why a transformation is valid", "principle behind inverse operations", etc.). Start from what the student actually wrote. 
+   If a critical rationale that should appear for this problem is missing entirely, ADD it as an aspect (you may create an aspect even if the student didn't mention it) so omissions can be labeled explicitly.
+2) For EACH aspect, assign ALL applicable labels from this set (be comprehensive; include any label that even slightly fits):
+   [Correct, Incorrect, Omission, False Alarm].
+3) For EACH aspect, write a detailed explanation (≥5 sentences) explaining precisely why the chosen label(s) apply.
+   Reference the student's wording when possible; clarify what is right, what is wrong, what is missing, and how to fix it.
+
+Required output (PLAIN TEXT, no JSON):
+Title: Rationales Dimension
+Then for each aspect, output EXACTLY this 3-line block (repeat for all aspects):
+
+- Aspect: <short aspect name>
+  Labels: [Correct | Incorrect | Omission | False Alarm, ...]   # choose one or more
+  Explanation: <at least 5 full sentences; specific, concrete, and tied to the student's text>
+"""

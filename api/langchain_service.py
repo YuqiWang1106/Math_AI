@@ -1,4 +1,4 @@
-import os, json
+import os
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
@@ -6,11 +6,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import Tool, initialize_agent, AgentType
 from langchain.chains import LLMChain, ConversationChain
 from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
+
 
 from .prompts import (
-    EVALUATOR_SYSTEM_PROMPT,
-    REFINER_PROMPT,
-    REVIEWER_PROMPT,
+    FACTS_PROMPT,
+    STRATEGIES_PROMPT,
+    PROCEDURES_PROMPT,
+    RATIONALES_PROMPT,
     TUTOR_PROMPT,
 )
 
@@ -39,12 +42,11 @@ def get_chat_agent(student_id: str, assessment_data: dict, first_question: str):
 
     student_text = create_self_assessment_text(assessment_data) # Convert raw JSON to long text
     eval_result = evaluate_self_assessment(student_text, student_id) # ReAct Loop Evaluation --> Get Structured JSON result
-    eval_json_str = json.dumps(eval_result, ensure_ascii=False, indent=2)
-    raw_json_str  = json.dumps(assessment_data, ensure_ascii=False, indent=2)
+    raw_json_str  = str(assessment_data)
 
     # System Prompt (include Evaluation Report JSON, and store in memory)
     system_prompt = TUTOR_PROMPT.format(
-        prior_summary=eval_json_str,
+        prior_summary=eval_result,
         raw_json=raw_json_str
         )
     # Initiate LongChain Memory
@@ -70,74 +72,43 @@ def get_self_assessment(_):
     """Return the full self-assessment text that must be evaluated."""
     return CURRENT_ASSESSMENT_TEXT
 
-def return_json(data):
-    """Ensure valid JSON string is returned"""
-    if isinstance(data, str):
-        try:
-            json.loads(data)
-            return data
-        except json.JSONDecodeError:
-            pass
-    return json.dumps(data, ensure_ascii=False)
 
 tools = [
     Tool(
         name="GetSelfAssessment",
         func=get_self_assessment,
         description="Returns the student's self-assessment that the evaluator must grade."
-    ),
-    Tool(
-        name="ReturnJSON",
-        func=return_json,
-        description="Call this at the FINAL step and pass the full evaluation JSON as the input."
     )
 ]
 
-# Setup chains
-refiner_chain = LLMChain(llm=llm, prompt=REFINER_PROMPT)
-reviewer_chain = LLMChain(llm=llm, prompt=REVIEWER_PROMPT)
+DIMENSIONS = {
+    "Facts": FACTS_PROMPT,
+    "Strategies": STRATEGIES_PROMPT,
+    "Procedures": PROCEDURES_PROMPT,
+    "Rationales": RATIONALES_PROMPT,
+}
 
-# Main evaluation logic
-def evaluate_self_assessment(student_text: str, student_id: str) -> dict:
-    global CURRENT_ASSESSMENT_TEXT
-    CURRENT_ASSESSMENT_TEXT = student_text
+def evaluate_self_assessment(student_text: str, student_id: str) -> str:
+    results = []
 
-    evaluator_agent = initialize_agent(
-        tools,
-        llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        agent_kwargs={"system_message": EVALUATOR_SYSTEM_PROMPT},
-        return_only_outputs=True,
-        verbose=True,
-        callbacks=None,
-    )
+    for name, prompt_template in DIMENSIONS.items():
+        # 把每个维度的 prompt 包装成 PromptTemplate
+        chain = LLMChain(
+            llm=llm,
+            prompt=PromptTemplate.from_template(prompt_template),
+        )
 
-    result_str = evaluator_agent.invoke({"input": "Begin evaluation."})
-    return_payload = result_str["output"] if isinstance(result_str, dict) else result_str
+        # 执行链
+        output = chain.run(student_text=student_text)
 
-    if isinstance(return_payload, str):
-        draft_eval = json.loads(return_payload)
-    elif isinstance(return_payload, dict):
-        draft_eval = return_payload
-    else:
-        raise ValueError("Unexpected ReturnJSON format")
+        # 打印到 terminal
+        print(f"--- {name} Dimension Result ---\n{output}\n")
 
-    # Refine
-    for i in range(2):
-        refinement = refiner_chain.predict(
-            student_text=student_text,
-            draft=json.dumps(draft_eval, ensure_ascii=False)
-        ).strip()
-        # print(f"[Refine round {i}] raw refinement =", repr(refinement))
-        if refinement == "NO_CHANGE":
-            break
-        draft_eval = json.loads(refinement)
+        # 收集结果
+        results.append(f"--- {name} Dimension ---\n{output.strip()}\n")
 
-    # Review
-    review_result = reviewer_chain.predict(draft=json.dumps(draft_eval, ensure_ascii=False), callbacks=None).strip()
-    if not review_result or review_result.upper() == "NO_CHANGE":
-        return draft_eval
-    return json.loads(review_result)
+    return "\n\n".join(results)
+
 
 # Convert raw assessment dict into evaluable text
 def create_self_assessment_text(assessment: dict) -> str:
