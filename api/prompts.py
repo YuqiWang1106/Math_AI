@@ -83,10 +83,15 @@ Algebraic components such as variables, constants, coefficients, equality statem
 
 The student's raw self-assessment is given below:
 ----------------
-{student_text}
+{{ student_text }}
 ----------------
 
 Your task (Facts only) has TWO phases:
+
+WORKFLOW REQUIREMENTS:
+- Think through both phases inside a `<scratchpad>` section. Keep all private reasoning strictly inside the scratchpad.
+- Structure the scratchpad into three labeled parts: (1) Reference Facts Draft, (2) Student Comparison Notes with tentative labels, (3) Self-Check & Remediation where you double-check label accuracy, resolve any conflicts, and note the specific coaching you will surface in `<final>`.
+- After completing the self-check, output only the polished response inside `<final>` using the exact format below. Do not leak scratchpad content outside its tags.
 
 PHASE 1 – Reference Facts
 - Write the ideal and complete list of algebra facts that a strong solution should mention.  
@@ -97,8 +102,8 @@ PHASE 2 – Student Comparison
 1) Compare the student's writing against the reference list. Extract ASPECTS of "facts" from their text.  
 2) For EACH aspect (including missing but essential facts), assign ALL applicable labels: [Correct, Incorrect, Omission, False Alarm].  
 3) For EACH aspect, write a detailed explanation (≥5 sentences) explaining why the chosen label(s) apply.  
-   Be specific: quote or paraphrase the student's wording when possible, highlight what is right, what is wrong, what is missing, and how to fix it.  
-4) Finish with: "Most critical factual gap for this student: <one-sentence summary>"
+   Be specific: quote or paraphrase the student's wording when possible, highlight what is right, what is wrong, what is missing, and how to fix it. If you assign Incorrect or Omission, the explanation must include concrete corrective guidance that the student can act on.
+4) Finish with: "Most critical factual gap for this student: <one-sentence summary that names the gap and a specific next step>"
 
 Algebra Few-Shot Exemplars (do NOT copy; use them as calibration):
 Level 1 – Linear equation (Introductory)
@@ -147,11 +152,16 @@ Title: Facts Dimension
   Explanation: The student reports solutions x = -1 and x = 3, which do not satisfy x^2 - 2x - 1 = 0. The quadratic's discriminant is 4 + 4 = 8, leading to roots x = 1 ± √2, not integers. Because they supply wrong x-values, the intersection coordinates they list are also incorrect. Furthermore, they omit the exact radical solutions entirely. This dual issue makes the aspect both Incorrect and an Omission. They should solve the quadratic using the quadratic formula to recover the correct radical expressions.
 
 Required output (PLAIN TEXT, no JSON):
+<scratchpad>
+- Deliberate privately here following the required three-part structure. Confirm that every label has direct evidence and that you capture the top gap plus a recommended next step for the student.
+</scratchpad>
+<final>
 Title: Facts Dimension
 Then:
 - Aspect: <short aspect name>  
   Labels: [Correct | Incorrect | Omission | False Alarm, ...]  
   Explanation: <≥5 full sentences; concrete and tied to the student's text>
+</final>
 
 
 """
@@ -166,10 +176,15 @@ General approaches for tackling an algebra problem, such as isolating variables 
 
 The student's raw self-assessment is given below:
 ----------------
-{student_text}
+{{ student_text }}
 ----------------
 
 Your task (Strategies only) has TWO phases:
+
+WORKFLOW REQUIREMENTS:
+- Conduct all reasoning for both phases inside a `<scratchpad>` block. Keep all private analysis inside the scratchpad.
+- Structure the scratchpad into three labeled parts: (1) Reference Strategies Draft, (2) Student Comparison Notes with tentative labels, (3) Self-Check & Remediation where you verify label accuracy, resolve disagreements, and plan the coaching points you will surface publicly.
+- After completing the self-check, present ONLY the finalized public response inside `<final>` using the exact format below. Keep the scratchpad private.
 
 PHASE 1 – Reference Strategies
 - List the ideal algebra strategies that a strong solution would employ for this specific problem type.  
@@ -179,8 +194,8 @@ PHASE 1 – Reference Strategies
 PHASE 2 – Student Comparison
 1) Compare the student's writing against the reference list. Extract ASPECTS of "strategies."  
 2) For EACH aspect, assign ALL applicable labels: [Correct, Incorrect, Omission, False Alarm].  
-3) For EACH aspect, write a detailed explanation (≥5 sentences) tying the reasoning to the student's words.  
-4) Conclude with: "Most critical strategy gap for this student: <one-sentence summary>"
+3) For EACH aspect, write a detailed explanation (≥5 sentences) tying the reasoning to the student's words. If you mark Incorrect or Omission, include actionable guidance the student should try next.  
+4) Conclude with: "Most critical strategy gap for this student: <one-sentence summary that names the gap and a specific next step>"
 
 Algebra Few-Shot Exemplars (do NOT copy; they calibrate your expectations):
 Level 1 – One-step and two-step equations (Introductory)
@@ -226,11 +241,16 @@ Title: Strategies Dimension
   Explanation: Claiming that elimination "already guarantees the answer" overlooks the strategic value of checking both equations. Verification guards against arithmetic slips during scaling or subtraction. By skipping it, the student omits a vital strategy and promotes a misconception that algebraic processes are infallible. The reference plan explicitly includes a check, so this absence is both Incorrect guidance and an Omission. Emphasizing a quick substitution check would strengthen their strategic routine.
 
 Required output (PLAIN TEXT, no JSON):
+<scratchpad>
+- Reason carefully here using the required three-part structure. Confirm each label has evidence and capture the key coaching you will deliver in `<final>`.
+</scratchpad>
+<final>
 Title: Strategies Dimension
 Then:
 - Aspect: <short aspect name>  
   Labels: [Correct | Incorrect | Omission | False Alarm, ...]  
   Explanation: <≥5 full sentences; concrete and tied to the student's text>
+</final>
 
 """
 
@@ -244,10 +264,15 @@ Step-by-step algebraic moves executed in order, such as applying inverse operati
 
 The student's raw self-assessment is given below:
 ----------------
-{student_text}
+{{ student_text }}
 ----------------
 
 Your task (Procedures only) has TWO phases:
+
+WORKFLOW REQUIREMENTS:
+- Perform detailed reasoning for both phases inside a `<scratchpad>` block. Keep all private notes inside the scratchpad.
+- Structure the scratchpad into three labeled parts: (1) Reference Procedures Draft, (2) Student Comparison Notes with tentative labels, (3) Self-Check & Remediation where you confirm ordering, resolve conflicts, and outline the coaching you will surface publicly.
+- Once the self-check is complete, provide ONLY the polished response inside `<final>` exactly as specified below. Do not expose scratchpad content elsewhere.
 
 PHASE 1 – Reference Procedures
 - Outline the ideal ordered sequence of algebra procedures for this problem.  
@@ -257,8 +282,8 @@ PHASE 1 – Reference Procedures
 PHASE 2 – Student Comparison
 1) Compare the student's description against the reference list. Extract ASPECTS of "procedures."  
 2) For EACH aspect, assign ALL applicable labels: [Correct, Incorrect, Omission, False Alarm].  
-3) For EACH aspect, provide a detailed explanation (≥5 sentences) clarifying alignment or deviation.  
-4) Finish with: "Most critical procedural gap for this student: <one-sentence summary>"
+3) For EACH aspect, provide a detailed explanation (≥5 sentences) clarifying alignment or deviation. If a label includes Incorrect or Omission, spell out the corrective procedure the student should attempt next.  
+4) Finish with: "Most critical procedural gap for this student: <one-sentence summary that names the gap and a specific next step>"
 
 Algebra Few-Shot Exemplars (do NOT copy; they demonstrate expectations):
 Level 1 – Solving 2-step equations (Introductory)
@@ -310,11 +335,16 @@ Title: Procedures Dimension
   Explanation: Solving the simplified linear equation does lead to x = 2, which is correct algebraically. However, they do not articulate the intermediate steps explicitly (e.g., subtracting 2, dividing by 3), though the conclusion is sound. More importantly, they omit checking that x ≠ 1 to avoid zero denominators. The correct solution fortunately satisfies the domain restriction, but the check remains unstated. Therefore, combine Correct for the solution with Omission for the missing restriction check.
 
 Required output (PLAIN TEXT, no JSON):
+<scratchpad>
+- Use this space with the required three-part structure to vet every label, confirm evidence, and record the top coaching point you will deliver in `<final>`.
+</scratchpad>
+<final>
 Title: Procedures Dimension
 Then:
 - Aspect: <short aspect name>  
   Labels: [Correct | Incorrect | Omission | False Alarm, ...]  
   Explanation: <≥5 full sentences; concrete and tied to the student's text>
+</final>
 
 """
 
@@ -327,10 +357,15 @@ Underlying algebraic principles that justify procedures, such as the properties 
 
 The student's raw self-assessment is given below:
 ----------------
-{student_text}
+{{ student_text }}
 ----------------
 
 Your task (Rationales only) has TWO phases:
+
+WORKFLOW REQUIREMENTS:
+- Develop all reasoning for both phases inside a `<scratchpad>` section. Keep all private deliberation within the scratchpad.
+- Structure the scratchpad into three labeled parts: (1) Reference Rationales Draft, (2) Student Comparison Notes with tentative labels, (3) Self-Check & Remediation where you verify evidence-label alignment, resolve conflicts, and plan how you will coach the student in `<final>`.
+- After the self-check is complete, respond publicly only inside `<final>` in the exact format described below. Never expose the scratchpad beyond its tags.
 
 PHASE 1 – Reference Rationales
 - List the ideal conceptual explanations that justify the correct procedures for this problem.  
@@ -340,8 +375,8 @@ PHASE 1 – Reference Rationales
 PHASE 2 – Student Comparison
 1) Compare the student's writing against the reference list. Extract ASPECTS of "rationales."  
 2) For EACH aspect, assign ALL applicable labels: [Correct, Incorrect, Omission, False Alarm].  
-3) For EACH aspect, write a detailed explanation (≥5 sentences) connecting the student's wording to the conceptual accuracy.  
-4) Finish with: "Most critical rationale gap for this student: <one-sentence summary>"
+3) For EACH aspect, write a detailed explanation (≥5 sentences) connecting the student's wording to the conceptual accuracy. If the label includes Incorrect or Omission, provide precise conceptual guidance the student should internalize next.  
+4) Finish with: "Most critical rationale gap for this student: <one-sentence summary that names the gap and a specific next step>"
 
 Algebra Few-Shot Exemplars (do NOT copy; use them to calibrate depth and tone):
 Level 1 – Linear equation reasoning (Introductory)
@@ -384,10 +419,15 @@ Title: Rationales Dimension
   Explanation: The student discusses discarding x = 1 but does not extend the rationale to consider whether other algebraic manipulations could introduce extraneous roots. A comprehensive rationale would mention that multiplying both sides can sometimes produce non-original solutions. Without referencing this broader caution, their conceptual coverage is incomplete. The reference rationale includes awareness of extraneous solutions in rational equations. Hence this aspect is an Omission.
 
 Required output (PLAIN TEXT, no JSON):
+<scratchpad>
+- Reflect privately here using the required three-part structure. Ensure every label has evidence and that you articulate the key coaching point you will surface in `<final>`.
+</scratchpad>
+<final>
 Title: Rationales Dimension
 Then:
 - Aspect: <short aspect name>  
   Labels: [Correct | Incorrect | Omission | False Alarm, ...]  
   Explanation: <≥5 full sentences; concrete and tied to the student's text>
+</final>
 
 """

@@ -91,21 +91,34 @@ DIMENSIONS = {
 def evaluate_self_assessment(student_text: str, student_id: str) -> str:
     results = []
 
+    def _extract_public_response(text: str) -> str:
+        if not text:
+            return ""
+        start_tag = "<final>"
+        end_tag = "</final>"
+        start = text.find(start_tag)
+        end = text.find(end_tag, start + len(start_tag)) if start != -1 else -1
+        if start != -1 and end != -1:
+            return text[start + len(start_tag):end].strip()
+        return text.strip()
+
     for name, prompt_template in DIMENSIONS.items():
         # 把每个维度的 prompt 包装成 PromptTemplate
         chain = LLMChain(
             llm=llm,
-            prompt=PromptTemplate.from_template(prompt_template),
+            prompt=PromptTemplate.from_template(prompt_template, template_format="jinja2"),
         )
 
         # 执行链
         output = chain.run(student_text=student_text)
+        print(f"--- {name} Chain Result ---\n{output}\n")
+        final_output = _extract_public_response(output)
 
         # 打印到 terminal
-        print(f"--- {name} Dimension Result ---\n{output}\n")
+        print(f"--- {name} Dimension Result ---\n{final_output}\n")
 
         # 收集结果
-        results.append(f"--- {name} Dimension ---\n{output.strip()}\n")
+        results.append(f"--- {name} Dimension ---\n{final_output}\n")
 
     return "\n\n".join(results)
 
