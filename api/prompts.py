@@ -75,6 +75,23 @@ TUTOR_PROMPT = ChatPromptTemplate.from_template("""
 
 
 
+SUBJECT_CLASSIFIER_PROMPT = """
+You are a math domain classifier. Given a student's self-assessment, decide whether the core content is Algebra, Geometry, or Arithmetic.
+
+RULES:
+- Output exactly one word in lowercase: algebra, geometry, or arithmetic.
+- No punctuation, no explanations, no extra text.
+- Choose the closest match even if the description mixes topics.
+
+Self-Assessment Text:
+----------------
+{{ student_text }}
+----------------
+
+Answer:
+"""
+
+
 FACTS_PROMPT = """
 You are a strict, objective algebra self-assessment evaluator working ONLY on the Facts dimension.
 

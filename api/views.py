@@ -1,13 +1,8 @@
-from django.shortcuts import render
-
-# Create your views here.
-# api/views.py
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .langchain_service import evaluate_self_assessment, create_self_assessment_text, ask_with_memory
+from .langchain_service import evaluate_assessment, ask_with_memory
 
 
 class EvaluateAPIView(APIView):
@@ -29,8 +24,7 @@ class EvaluateAPIView(APIView):
             if not json_data:
                 return Response({"error": "Missing json_data"}, status=status.HTTP_400_BAD_REQUEST)
 
-            student_text = create_self_assessment_text(json_data)
-            result = evaluate_self_assessment(student_text, student_id)
+            result = evaluate_assessment(student_id, json_data)
 
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
