@@ -17,6 +17,7 @@ from .prompts import (
     TUTOR_PROMPT,
     SUBJECT_CLASSIFIER_PROMPT,
 )
+from .arithmetic_module import ArithmeticSubjectModule
 
 
 load_dotenv()
@@ -194,7 +195,7 @@ class AlgebraSubjectModule(BaseSubjectModule):
 class MathAgentOrchestrator:
     """Coordinates subject detection and delegates to the appropriate subject module."""
 
-    def __init__(self, modules: Dict[str, BaseSubjectModule], classifier_llm: ChatOpenAI):
+    def __init__(self, modules: Dict[str, Any], classifier_llm: ChatOpenAI):
         self._modules = modules
         self._classifier_llm = classifier_llm
         self._student_states: Dict[str, Dict[str, Any]] = {}
@@ -295,7 +296,12 @@ _ORCHESTRATOR = MathAgentOrchestrator(
             BACKUP_CHAT_LLM,
         ),
         "geometry": PlaceholderSubjectModule("geometry"),
-        "arithmetic": PlaceholderSubjectModule("arithmetic"),
+        "arithmetic": ArithmeticSubjectModule(
+            PRIMARY_EVALUATOR_LLM,
+            PRIMARY_CHAT_LLM,
+            BACKUP_CHAT_LLM,
+            create_self_assessment_text,
+        ),
     },
     classifier_llm=SUBJECT_CLASSIFIER_LLM,
 )
