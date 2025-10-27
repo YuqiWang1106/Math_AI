@@ -30,6 +30,13 @@ Facts (arithmetic-specific):
 - Representations (fraction/decimal/percent equivalences), constraints (e.g., nonnegative counts), and target quantity.
 - Do NOT infer unstated facts.
 
+Label definitions (use them consistently on every aspect):
+- Know-Know: The student states a relevant arithmetic fact correctly.
+- Know-Don't Know: The student explicitly acknowledges they are unsure about a relevant fact.
+- False Knowledge: The student states a relevant fact incorrectly.
+- Omission: A necessary fact never appears.
+- Irrelevant Knowledge: The student mentions information that does not help solve the arithmetic task.
+
 The student's raw self-assessment is given below:
 ----------------
 {{ student_text }}
@@ -64,6 +71,13 @@ Strategies (arithmetic-specific):
   use number line; choose long-division vs. repeated subtraction; use ratio table; choose order-of-operations plan (PEMDAS).
 - Strategy must match structure (e.g., multi-step word problem → plan steps; comparison with percents → convert form then compare).
 
+Label definitions (use them consistently on every aspect):
+- Know-Know: The student proposes a relevant, effective strategy.
+- Know-Don't Know: The student clearly states they lack or are unsure about a needed strategy.
+- False Knowledge: The student promotes a flawed or misleading strategy.
+- Omission: A required strategy is missing.
+- Irrelevant Knowledge: The student describes a strategy unrelated to the arithmetic task.
+
 The student's raw self-assessment is given below:
 ----------------
 {{ student_text }}
@@ -96,6 +110,13 @@ Procedures (arithmetic-specific):
 - Step-by-step algorithms: regrouping (borrowing/carrying) for +/−; partial products/long multiplication; long division (with/without remainders);
   fraction operations (common denominator, cross-multiplication for proportions); decimal alignment; unit conversions; order of operations (PEMDAS).
 - Check/verify steps (e.g., inverse operation, estimation) are part of procedural completeness.
+
+Label definitions (use them consistently on every aspect):
+- Know-Know: The student outlines a correct procedural step in the proper order.
+- Know-Don't Know: The student admits uncertainty about a needed procedural move.
+- False Knowledge: The student describes an incorrect or misordered step.
+- Omission: A required procedure is missing entirely.
+- Irrelevant Knowledge: The student focuses on a procedure that does not apply to the arithmetic problem.
 
 The student's raw self-assessment is given below:
 ----------------
@@ -134,6 +155,13 @@ Rationales (arithmetic-specific):
 - Principles justifying procedures: commutative/associative/distributive properties; inverse/identity; equivalence of fractions;
   place-value reasoning; unit-rate logic; why common denominators are needed; why we align decimals; why we can borrow/regroup;
   why order of operations matters; why estimation bounds reasonableness.
+
+Label definitions (use them consistently on every aspect):
+- Know-Know: The student cites a relevant arithmetic principle correctly.
+- Know-Don't Know: The student clearly highlights a conceptual uncertainty.
+- False Knowledge: The student states or applies a principle incorrectly.
+- Omission: A needed principle never appears.
+- Irrelevant Knowledge: The student discusses a principle that does not support the solution.
 
 The student's raw self-assessment is given below:
 ----------------
@@ -240,6 +268,13 @@ You are a supportive, precision-focused arithmetic tutor working with learners f
 You specialize in operations with whole numbers, fractions, decimals, rates, ratios, and unit conversions.
 You MUST ground every response in both the RAW_SELF_ASSESSMENT and the EVALUATION_JSON.
 
+Label glossary inside EVALUATION_JSON:
+- Know-Know: student stated something relevant and correct.
+- Know-Don't Know: student openly noted a relevant arithmetic gap they need help with.
+- False Knowledge: student claimed a relevant idea that is wrong or misleading.
+- Omission: student skipped a required arithmetic idea entirely.
+- Irrelevant Knowledge: student introduced information unrelated to the task.
+
 Core responsibilities in every reply:
 1. Reference the student's own words from the RAW_SELF_ASSESSMENT to acknowledge what they believe they know.
 2. Use the EVALUATION_JSON to identify their strongest skills and most urgent arithmetic gaps.
@@ -247,6 +282,7 @@ Core responsibilities in every reply:
 
 Prioritize your support in this order:
 - Correct any false or misleading numeric claims.
+- Address any False Knowledge (incorrect numbers or operations) immediately.
 - Clarify missing or misunderstood procedures (borrow/regroup, align decimals, find unit rate, etc.).
 - Encourage a next action (re-compute, check with inverse operation, estimate to verify, etc.).
 - Close with a constructive, confidence-building comment tied to their arithmetic progress.
