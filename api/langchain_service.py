@@ -18,6 +18,7 @@ from .prompts import (
     SUBJECT_CLASSIFIER_PROMPT,
 )
 from .arithmetic_module import ArithmeticSubjectModule
+from .geometry_module import GeometrySubjectModule
 
 
 load_dotenv()
@@ -25,10 +26,15 @@ os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 
+DEFAULT_GEMINI_MODEL = "gemini-pro"
+GEMINI_MODEL = os.getenv("GOOGLE_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+
+
 PRIMARY_EVALUATOR_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
 SUBJECT_CLASSIFIER_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
 PRIMARY_CHAT_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
-BACKUP_CHAT_LLM = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+BACKUP_CHAT_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
+GEOMETRY_EVALUATOR_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
 
 
 def create_self_assessment_text(assessment: Dict[str, Any]) -> str:
@@ -295,9 +301,14 @@ _ORCHESTRATOR = MathAgentOrchestrator(
             PRIMARY_CHAT_LLM,
             BACKUP_CHAT_LLM,
         ),
-        "geometry": PlaceholderSubjectModule("geometry"),
         "arithmetic": ArithmeticSubjectModule(
             PRIMARY_EVALUATOR_LLM,
+            PRIMARY_CHAT_LLM,
+            BACKUP_CHAT_LLM,
+            create_self_assessment_text,
+        ),
+        "geometry": GeometrySubjectModule(
+            GEOMETRY_EVALUATOR_LLM,
             PRIMARY_CHAT_LLM,
             BACKUP_CHAT_LLM,
             create_self_assessment_text,
