@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 from langchain.prompts import PromptTemplate
@@ -10,12 +11,19 @@ GEOMETRY_KB: Dict[str, List[str]] = {
         "Label definitions: Know-Know = relevant and correct; Know-Don't Know = the student explicitly admits uncertainty or missing knowledge; False Knowledge = relevant but wrong; Omission = required idea never mentioned; Irrelevant Knowledge = off-topic information.",
         "Always ground feedback in concrete geometric features such as coordinates, angles, lengths, slopes, and symmetry.",
     ],
+    "general_geometry": [
+        "Use precise geometric features: coordinates, lengths, angles, slopes, symmetry, transformations, similarity, and congruence.",
+        "Check definitions against the object: verify slope-intercept for lines, center-radius for circles, and angle/side properties for polygons.",
+        "Always perform a quick verification: substitute coordinates, compare slopes, test symmetry, or check distances.",
+        "When describing graphs, address key points, symmetry or axes, domain, range, and monotonicity where relevant.",
+    ],
     "quadratic_parabola": [
         "For y = x^2, the vertex is (0,0).",
         "For y = x^2, the axis of symmetry is x = 0 (the y-axis).",
         "For y = x^2, the graph opens upward and is symmetric about x = 0.",
         "For y = x^2, the domain is all real numbers; the range is y ≥ 0.",
-        "For y = x^2, the graph decreases on x < 0 and increases on x > 0.",
+        "For y = x^2, the function decreases on x < 0 and increases on x > 0.",
+        "Points such as (±1, 1) and (±2, 4) lie on the curve.",
     ],
     "absolute_value": [
         "For y = |x|, the vertex is (0,0).",
@@ -24,16 +32,29 @@ GEOMETRY_KB: Dict[str, List[str]] = {
         "For y = |x|, the function decreases on x < 0 and increases on x > 0.",
     ],
     "linear": [
-        "For y = mx + b, slope m controls whether the line increases (m > 0), decreases (m < 0), or is constant (m = 0).",
-        "For y = mx + b, the y-intercept is the point (0, b).",
+        "For y = mx + b, slope m determines whether the line increases (m > 0), decreases (m < 0), or is constant (m = 0).",
+        "For y = mx + b, the y-intercept is (0, b).",
         "All non-vertical lines have domain and range equal to all real numbers.",
-        "Parallel lines have equal slopes; perpendicular lines have slopes whose product is -1 (when both slopes exist).",
+        "Parallel lines share equal slopes; perpendicular non-vertical lines have slopes whose product is -1.",
     ],
     "circle": [
-        "For (x - h)^2 + (y - k)^2 = r^2, the center is (h, k) and the radius is r > 0.",
-        "Points on the circle lie exactly distance r from the center.",
-        "A circle is symmetric about horizontal and vertical lines through its center.",
-        "The diameter is twice the radius; circumference is 2πr; area is πr^2.",
+        "For (x - h)^2 + (y - k)^2 = r^2, the center is (h, k) with radius r > 0.",
+        "Points on the circle are exactly distance r from the center.",
+        "A circle is symmetric about the vertical and horizontal lines through its center.",
+        "Diameter = 2r, circumference = 2πr, area = πr^2.",
+    ],
+    "triangle": [
+        "The sum of the interior angles of a triangle is 180 degrees.",
+        "Similarity criteria include AA, SAS (proportional), and SSS (proportional).",
+        "Congruence criteria include SSS, SAS, ASA, AAS, and HL for right triangles.",
+    ],
+    "distance_midpoint": [
+        "Distance between (x1, y1) and (x2, y2) is sqrt((x2 - x1)^2 + (y2 - y1)^2).",
+        "The midpoint of two points is ((x1 + x2)/2, (y1 + y2)/2).",
+    ],
+    "transformations": [
+        "Translations, rotations, and reflections are rigid motions that preserve distance and angle measure; dilations change size but keep shape.",
+        "Reflections preserve distance and angle measure while reversing orientation.",
     ],
 }
 
@@ -42,30 +63,126 @@ GEOMETRY_TOPIC_TITLES: Dict[str, str] = {
     "absolute_value": "Absolute Value (e.g., y = |x|)",
     "linear": "Linear Function (y = mx + b)",
     "circle": "Circle Geometry",
+    "triangle": "Triangles (Similarity & Congruence)",
+    "distance_midpoint": "Coordinate Geometry (Distance & Midpoint)",
+    "transformations": "Transformations (Translation / Rotation / Reflection / Dilation)",
+    "general_geometry": "Geometry (General)",
 }
 
 
 def route_geometry_topic(problem: str, student_text: str, fallback: str = "quadratic_parabola") -> str:
     text = f"{problem} {student_text}".lower()
-    if any(k in text for k in ["x^2", "parabola", "quadratic", "vertex", "axis of symmetry"]):
+
+    # Normalize common mathematical symbols to aid keyword routing.
+    text = text.replace("≤", "<=").replace("≥", ">=").replace("−", "-")
+    text = text.replace("|x|", "abs(x)").replace("∣x∣", "abs(x)")
+    text = re.sub(r"\s+", " ", text)
+
+    quad_patterns = [
+        r"\bx\^2\b",
+        r"\by\s*=\s*x\^2\b",
+        r"\bparabola\b",
+        r"\bquadratic\b",
+        r"\bvertex\b",
+        r"\baxis of symmetry\b",
+    ]
+    if any(re.search(pattern, text) for pattern in quad_patterns):
         return "quadratic_parabola"
-    if any(k in text for k in ["|x|", "absolute value", "v-shaped"]):
+
+    abs_patterns = [
+        r"\babs\(x\)\b",
+        r"y\s*=\s*\|x\|",
+        r"\babsolute value\b",
+        r"\bv[- ]?shaped\b",
+    ]
+    if any(re.search(pattern, text) for pattern in abs_patterns):
         return "absolute_value"
-    if any(k in text for k in ["slope", "linear", "y = mx + b", "straight line"]):
+
+    linear_patterns = [
+        r"\by\s*=\s*m\s*x\s*\+\s*b\b",
+        r"\blinear\b",
+        r"\bslope\b",
+        r"\bstraight line\b",
+        r"\by-intercept\b",
+    ]
+    if any(re.search(pattern, text) for pattern in linear_patterns):
         return "linear"
-    if any(k in text for k in ["circle", "radius", "center", "(x-h)^2", "r^2", "circumference"]):
+
+    circle_patterns = [
+        r"\(x\s*-\s*h\)\^2\s*\+\s*\(y\s*-\s*k\)\^2\s*=\s*r\^2",
+        r"\bcircle\b",
+        r"\bradius\b",
+        r"\bcenter\b",
+        r"\bcircumference\b",
+        r"\barea\b",
+    ]
+    if any(re.search(pattern, text) for pattern in circle_patterns):
         return "circle"
+
+    tri_patterns = [
+        r"\btriangle\b",
+        r"\bcongruence\b",
+        r"\bsimilarity\b",
+        r"\bsss\b",
+        r"\bsas\b",
+        r"\basa\b",
+        r"\baas\b",
+        r"\bhl\b",
+        r"\binterior angles\b",
+    ]
+    if any(re.search(pattern, text) for pattern in tri_patterns):
+        return "triangle"
+
+    coord_patterns = [
+        r"\bdistance formula\b",
+        r"\bmidpoint\b",
+        r"\bsqrt\(",
+        r"\b\((x1|x_1)\s*[,;]\s*(y1|y_1)\)\b",
+        r"\b\((x2|x_2)\s*[,;]\s*(y2|y_2)\)\b",
+    ]
+    if any(re.search(pattern, text) for pattern in coord_patterns):
+        return "distance_midpoint"
+
+    transformation_patterns = [
+        r"\btranslation\b",
+        r"\brotation\b",
+        r"\breflection\b",
+        r"\bdilation\b",
+        r"\brigid motion\b",
+        r"\bisometry\b",
+    ]
+    if any(re.search(pattern, text) for pattern in transformation_patterns):
+        return "transformations"
+
+    if any(keyword in text for keyword in ["point", "coordinate", "angle", "length", "symmetric"]):
+        return "general_geometry"
+
     return fallback
 
 
 def build_geometry_context(topic_key: str, include_global: bool = True, max_refs: int = 12) -> str:
-    references: List[str] = []
+    ordered: List[str] = []
+
+    def _append_many(items: List[str]) -> None:
+        for item in items or []:
+            if item not in ordered:
+                ordered.append(item)
+
     if include_global:
-        references.extend(GEOMETRY_KB.get("global", []))
-    references.extend(GEOMETRY_KB.get(topic_key, []))
-    if len(references) > max_refs:
-        references = references[:max_refs]
-    return "\n".join(f"- {line}" for line in references)
+        _append_many(GEOMETRY_KB.get("global", []))
+
+    _append_many(GEOMETRY_KB.get("general_geometry", []))
+
+    topic_items = GEOMETRY_KB.get(topic_key) or []
+    _append_many(topic_items)
+
+    if not topic_items and topic_key not in ("general_geometry", "quadratic_parabola"):
+        _append_many(GEOMETRY_KB.get("quadratic_parabola", []))
+
+    if len(ordered) > max_refs:
+        ordered = ordered[:max_refs]
+
+    return "\n".join(f"- {line}" for line in ordered)
 
 
 ZERO_SHOT_SUFFIX = """

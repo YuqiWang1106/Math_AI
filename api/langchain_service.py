@@ -26,7 +26,7 @@ os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 
-DEFAULT_GEMINI_MODEL = "gemini-pro"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_MODEL = os.getenv("GOOGLE_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
 
