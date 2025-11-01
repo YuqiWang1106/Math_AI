@@ -15,10 +15,7 @@ from .prompts import (
     PROCEDURES_PROMPT,
     RATIONALES_PROMPT,
     TUTOR_PROMPT,
-    SUBJECT_CLASSIFIER_PROMPT,
 )
-from .arithmetic_module import ArithmeticSubjectModule
-from .geometry_module import GeometrySubjectModule
 
 
 load_dotenv()
@@ -31,10 +28,8 @@ GEMINI_MODEL = os.getenv("GOOGLE_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
 
 PRIMARY_EVALUATOR_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
-SUBJECT_CLASSIFIER_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
 PRIMARY_CHAT_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
 BACKUP_CHAT_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
-GEOMETRY_EVALUATOR_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
 
 
 def create_self_assessment_text(assessment: Dict[str, Any]) -> str:
@@ -99,8 +94,8 @@ class PlaceholderSubjectModule(BaseSubjectModule):
         )
 
 
-class AlgebraSubjectModule(BaseSubjectModule):
-    """Algebra-specific evaluation and tutoring pipeline."""
+class HealthSubjectModule(BaseSubjectModule):
+    """Health-focused evaluation and tutoring pipeline for stress management."""
 
     def __init__(
         self,
@@ -108,7 +103,7 @@ class AlgebraSubjectModule(BaseSubjectModule):
         primary_chat_llm: ChatOpenAI,
         backup_chat_llm: ChatGoogleGenerativeAI,
     ):
-        self.subject_name = "algebra"
+        self.subject_name = "health"
         self._evaluator_llm = evaluator_llm
         self._primary_chat_llm = primary_chat_llm
         self._backup_chat_llm = backup_chat_llm
@@ -198,21 +193,17 @@ class AlgebraSubjectModule(BaseSubjectModule):
         return chat_chain, True
 
 
-class MathAgentOrchestrator:
-    """Coordinates subject detection and delegates to the appropriate subject module."""
+class HealthAgentOrchestrator:
+    """Runs evaluation and tutoring for the single health module."""
 
-    def __init__(self, modules: Dict[str, Any], classifier_llm: ChatOpenAI):
-        self._modules = modules
-        self._classifier_llm = classifier_llm
+    def __init__(self, module: BaseSubjectModule):
+        self._module = module
         self._student_states: Dict[str, Dict[str, Any]] = {}
 
     def evaluate(self, student_id: str, assessment_data: Dict[str, Any]) -> str:
-        subject = self._determine_subject(assessment_data)
-        module = self._modules[subject]
-        evaluation_payload = module.evaluate(student_id, assessment_data)
-
+        evaluation_payload = self._module.evaluate(student_id, assessment_data)
         self._student_states[student_id] = {
-            "subject": subject,
+            "subject": self._module.subject_name,
             "evaluation": evaluation_payload["report"],
             "student_text": evaluation_payload.get("student_text", ""),
             "raw_json_str": str(assessment_data),
@@ -220,109 +211,36 @@ class MathAgentOrchestrator:
             "agent": None,
             "backend": None,
         }
-
         return evaluation_payload["report"]
 
     def ask(self, student_id: str, assessment_data: Dict[str, Any], question: str) -> str:
         state = self._student_states.get(student_id)
         raw_json_str = str(assessment_data)
-        if state and state.get("raw_json_str") == raw_json_str:
-            subject = state["subject"]
-        else:
-            subject = self._determine_subject(assessment_data)
 
-        if state is None or state.get("subject") != subject:
-            # Fresh student or subject changed: run evaluation anew.
+        if state is None or state.get("raw_json_str") != raw_json_str:
             evaluation_report = self.evaluate(student_id, assessment_data)
             state = self._student_states[student_id]
             state["evaluation"] = evaluation_report
 
-        module = self._modules[subject]
         state["assessment_data"] = assessment_data
         state["raw_json_str"] = raw_json_str
-        return module.ask(state, assessment_data, question)
-
-    def _determine_subject(self, assessment_data: Dict[str, Any]) -> str:
-        """Determine subject via LLM classifier with heuristic fallback."""
-        subject = self._classify_subject_with_llm(assessment_data)
-        if subject:
-            print(f"[SubjectClassifier] LLM classified subject as '{subject}'.")
-            return subject
-        subject = self._fallback_subject(assessment_data)
-        print(f"[SubjectClassifier] Fallback classified subject as '{subject}'.")
-        return subject
-
-    def _classify_subject_with_llm(self, assessment_data: Dict[str, Any]) -> Optional[str]:
-        """Use an LLM to classify the subject; return None if classification fails."""
-        try:
-            student_text = create_self_assessment_text(assessment_data)
-            chain = LLMChain(
-                llm=self._classifier_llm,
-                prompt=PromptTemplate.from_template(
-                    SUBJECT_CLASSIFIER_PROMPT,
-                    template_format="jinja2",
-                ),
-            )
-            raw_response = chain.run(student_text=student_text)
-            if not raw_response:
-                return None
-            normalized = raw_response.strip().lower()
-            token = normalized.split()[0].strip(",.?!")
-            if token in self._modules:
-                return token
-        except Exception:
-            return None
-        return None
-
-    def _fallback_subject(self, assessment_data: Dict[str, Any]) -> str:
-        """Keyword heuristic used if the LLM classifier is unavailable."""
-        problem = ""
-        self_assessment = assessment_data.get("self_assessment", {})
-        if isinstance(self_assessment, dict):
-            problem = self_assessment.get("problem", "") or ""
-
-        lowered = problem.lower()
-
-        geometry_keywords = ["triangle", "angle", "polygon", "circle", "area", "perimeter"]
-        arithmetic_keywords = ["fraction", "decimal", "integer", "percent", "ratio"]
-
-        if any(keyword in lowered for keyword in geometry_keywords):
-            return "geometry"
-        if any(keyword in lowered for keyword in arithmetic_keywords):
-            return "arithmetic"
-
-        return "algebra"
+        return self._module.ask(state, assessment_data, question)
 
 
-_ORCHESTRATOR = MathAgentOrchestrator(
-    modules={
-        "algebra": AlgebraSubjectModule(
-            PRIMARY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-        ),
-        "arithmetic": ArithmeticSubjectModule(
-            PRIMARY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-            create_self_assessment_text,
-        ),
-        "geometry": GeometrySubjectModule(
-            GEOMETRY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-            create_self_assessment_text,
-        ),
-    },
-    classifier_llm=SUBJECT_CLASSIFIER_LLM,
+_ORCHESTRATOR = HealthAgentOrchestrator(
+    module=HealthSubjectModule(
+        PRIMARY_EVALUATOR_LLM,
+        PRIMARY_CHAT_LLM,
+        BACKUP_CHAT_LLM,
+    )
 )
 
 
 def evaluate_assessment(student_id: str, assessment_data: Dict[str, Any]) -> str:
-    """Evaluate a student's self-assessment by routing to the correct subject module."""
+    """Evaluate a student's self-assessment using the health module."""
     return _ORCHESTRATOR.evaluate(student_id, assessment_data)
 
 
 def ask_with_memory(student_id: str, assessment_data: Dict[str, Any], question: str) -> str:
-    """Answer a student's question using the previously selected subject tutor."""
+    """Answer a student's question using the health tutor."""
     return _ORCHESTRATOR.ask(student_id, assessment_data, question)

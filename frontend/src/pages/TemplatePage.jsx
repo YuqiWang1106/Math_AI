@@ -45,86 +45,50 @@ function Template_Page() {
       <div className="row main-content-part">
         <div className="col-5 left-side">
                         <p>
-              I want to teach you how to assess your own knowledge that you have
-              about a subject area. Let’s do this by taking an example that you
-              already know. Suppose you wanted to assess your own knowledge
-              about solving 2-step equations of the form ax + b = c. An example
-              of this type of problem is 2x + 3 = 15. If I want to be able to
-              solve problems like these, I need four types of knowledge. These
-              are facts, strategies, procedures and rationales. Fact are
-              concepts you have that describe objects or elements. For example,
-              for two step equations, I need to know what variables, constants,
-              coefficients, equations, and expressions are. Strategies are
-              general processes I would use to solve a problem. For two step
-              equations, this would be reverse order of operations. Procedures
-              are the specific steps that I would use in a strategy. So if I am
-              using reverse order of operations, I need to know additive and
-              multiplicative inverses. Finally, I need to know rationales which
-              are the reasons why the strategies or the procedures work the way
-              they do. For example, this could include things like the
-              subtraction or the division property of equality that says that
-              when you do the same operation to both sides of an equation, you
-              preserve the value of the equation. You can think of facts as
-              telling you “what”, strategies and procedures as telling you “how”
-              and rationales as telling you “why”. With this in mind, this is
-              how I might assess my own knowledge of solving two step equations.
+I want to teach you to assess your own knowledge that you have about a health affliction and how to determine if this is impacting YOU and what to do about it. 
+Suppose you wanted to assess your own knowledge about colds. If I want to be able to solve problems like these, I need four types of knowledge. 
+These are facts, strategies, procedures and rationales. 
+Facts are concepts you have to describe objects or elements. 
+For example, in the case of a common cold, I would need to know what exactly colds are, how they spread, when symptoms typically appear, how they impact different age groups, and how long colds typically last. 
+Strategies are general processes I would use to cure a cold or alleviate its symptoms. For colds, this would be things like resting, drinking plenty of fluids, hygiene, etc. 
+Procedures are specific steps that you would use in processes or the strategies said earlier (think of them like mini-building blocks that make up strategies). 
+So, in the example of hygiene, this would be things like washing your hands, avoiding close contact with people, properly disposing of things like used tissues, sneezing into your elbow, etc. 
+Finally, I need to know the rationales, or the reasons why strategies and procedures work the way that they do. 
+In the example of hygiene, this could be that the procedures above like washing your hands and avoiding close contact help to stop the spread of germs which could make you sick and give you a cold. 
+Think of facts as the “what”, strategies and procedures as the “how” and rationales as the “why”.
+
+Keeping these things in mind, this is how I might assess my own knowledge on colds. 
+Practice writing what you know about each of these things (facts, strategies, procedures, and rationales) to figure out where your personal strong points are and which points need more work. 
+Let’s practice together using the example of colds.
+
             </p>
             <p>
-              <strong>For facts</strong>, I need to know what variables,
-              constants, coefficients, equations and expressions are. A variable
-              is an unknown quantity, usually represented by a letter. A
-              constant is a specific number. A coefficient is a number that you
-              multiply a variable by like 2x. An equation is an expression that
-              is equally to another expression and the two expressions are
-              joined by an equal sign. An expression is one or more terms that
-              are combined by mathematical operations like addition,
-              subtraction, multiplication and division.
+              <strong>For facts</strong>, I know that the cause of the common cold is viruses like rhinoviruses, coronaviruses, and adenoviruses. 
+              You know that colds spread through coughing and sneezing, but they also spread through touching contaminated surfaces, which is common to forget. 
+              I remembered that symptoms usually appear a few days after exposure, but forgot the specific number of days (typically 1-3 days). 
+              I know that most colds last about 7-10 days, though I didn’t realize mild symptoms can linger for up to 2 weeks.
+
             </p>
             <p>
-              <strong>For strategies</strong>, I need to know reverse order of
-              operations which is SADMEP. This stands for subtraction, addition,
-              division, multiplication, exponents and parentheses. I know that
-              I’m supposed to do these in order but I don’t remember whether I’m
-              supposed to do subtraction always before addition or just which
-              one goes first. The same is true for division and multiplication.
+              <strong>For strategies</strong>, I know that you can rest and allow your body to heal, drink warm liquids such as herbal teas and warm water, stay very hygienic (sanitize and wash hands frequently) , and you should isolate yourself to prevent spreading the cold to others.
+
             </p>
             <p>
-              <strong>For procedures</strong>, I need to know additive inverse
-              and multiplicative inverse. The additive inverse is taking the
-              number with the opposite sign as the constant and adding it to
-              both sides of the equation. The multiplicative inverse is taking
-              the inverse of the coefficient of the variable and multiplying
-              both sides of the equation by it. However, if the coefficient is
-              negative, I’m not sure if the multiplicative inverse is supposed
-              to be negative as well.
+              <strong>For procedures</strong>, I know that you can monitor your temperature daily to see if your health is getting better and identify things that would need medical attention such as a high fever or difficulty breathing.
+
             </p>
             <p>
-              <strong>For rationales</strong>, I believe the two rationales I
-              need are the subtraction property of equality and the division
-              property of equality. The subtraction property of equality says
-              that if I subtract the same number from both sides, which is what
-              I’m doing with the additive inverse, I preserve the equality.
-              Similarly, the division property of equality says that if I divide
-              both sides of the equation by the same number, which is what I’m
-              doing with the multiplicative inverse, I preserve the equality.
+              <strong>For rationales</strong>, I know that resting allows your immune system to focus on the energy fighting the cold, hydration keeps the mucous membranes moist, monitoring ear pain helps differentiate between cold and ear infection. I kind of forgot how exactly humidifiers work, although I recognize they help cure/prevent colds.
+
             </p>
             <p>
-              When I look over what I wrote, I see that I am good with my facts.
-              On my strategy, I’m not sure about the order of steps in reverse
-              order of operations when it comes to subtraction and addition or
-              multiplication and division, so I need to learn those. On
-              procedures, I’m not sure what to do with multiplicative inverses
-              when the coefficient is negative, so I need to learn that as well.
-              For rationales, I think I’m OK. I don’t think I have any missing
-              facts/concepts that I left out that I should know or I didn’t list
-              any facts/concepts where I didn’t know what they were. For the
-              strategy, I believe I listed the correct strategy and parts of the
-              strategy, but I wasn’t sure about some of the ordering of steps in
-              the strategy. For procedures, I was good on the additive inverse
-              but had a question on carrying out the multiplicative inverse when
-              the coeffcient was negative. For rationales, I think I had all the
-              rationales that were important and that I understood them as well.
-              I don’t think I left anything out.
+After writing whatever you know for each of these points, look over what you have written to see which points you know, what you possibly got wrong, which points you did not know at all, etc. 
+Then add what you do know and what you think you are still missing based on your self-assessment.
+When I look over what I wrote, I see that I am generally good with facts, but may have forgotten some specifics like how long it takes before symptoms show up. 
+For strategies, I can see that I’m generally good at remembering effective strategies for preventing and recovering from colds. 
+For procedures, I see that I’m good at remembering specific procedures to implement strategies. 
+For rationales, I can see that I’m generally good but I did forget how humidifiers work. 
+Using that gap in the writing that I did earlier, I can do some research to find out that humidifiers work to cure/prevent colds by preventing the airway from drying out, as that can worsen coughing and irritation.
             </p>
         </div>
 
