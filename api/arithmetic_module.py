@@ -13,6 +13,7 @@ from .arithmetic_prompts import (
     DEFAULT_ARITHMETIC_CORPUS,
     build_retriever,
 )
+from .priority_report import compute_full_priority_from_report
 
 
 class ArithmeticSubjectModule:
@@ -44,6 +45,7 @@ class ArithmeticSubjectModule:
     def evaluate(self, student_id: str, assessment_data: Dict[str, Any]) -> Dict[str, Any]:
         student_text = self._assessment_text_fn(assessment_data)
         results = []
+        structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
         for name, prompt in self._dimension_prompts.items():
             context = self._get_context(f"{name}: {student_text}")
@@ -54,14 +56,20 @@ class ArithmeticSubjectModule:
             raw_output = chain.run(student_text=student_text, context=context)
             print(f"--- Arithmetic {name} Chain Result ---\n{raw_output}\n")
             parsed_json = self._safe_parse_json(raw_output)
+            if isinstance(parsed_json, dict):
+                structured_dimensions[name] = parsed_json
             formatted_section = self._format_dimension_output(name, parsed_json)
             print(f"--- Arithmetic {name} Dimension Result ---\n{formatted_section}\n")
             results.append(formatted_section)
 
         evaluation_report = "\n\n".join(results)
+        priority_result = compute_full_priority_from_report(structured_dimensions)
+        self._log_priority(priority_result)
         return {
             "report": evaluation_report,
             "student_text": student_text,
+            "priority": priority_result,
+            "structured_report": structured_dimensions,
         }
 
     def ask(self, state: Dict[str, Any], assessment_data: Dict[str, Any], question: str) -> str:
@@ -151,3 +159,15 @@ class ArithmeticSubjectModule:
         if gap:
             lines.append(f"Most critical gap: {gap}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _log_priority(priority_result: Dict[str, Any]) -> None:
+        """Print priority outcome for quick verification."""
+        if not isinstance(priority_result, dict):
+            print("[Priority] 未能计算出优先级结果。")
+            return
+        top_dim = priority_result.get("top_dimension")
+        top_label = priority_result.get("top_label_in_top_dimension")
+        print("[Priority] ===== PRIORITY CHECK =====")
+        print(f"[Priority] Top dimension: {top_dim}")
+        print(f"[Priority] Top label in top dimension: {top_label}")

@@ -11,6 +11,7 @@ from .geometry_prompts import (
     build_geometry_context,
     route_geometry_topic,
 )
+from .priority_report import compute_full_priority_from_report
 
 
 GEOMETRY_TUTOR_PROMPT = """
@@ -71,6 +72,7 @@ class GeometrySubjectModule:
         context = build_geometry_context(topic_key, include_global=True)
 
         results = []
+        structured_dimensions: Dict[str, Dict[str, Any]] = {}
         for name, prompt_template in self._dimension_prompts.items():
             chain = LLMChain(
                 llm=self._evaluator_llm,
@@ -79,14 +81,20 @@ class GeometrySubjectModule:
             raw_output = chain.run(student_text=student_text, context=context)
             print(f"--- Geometry {name} Chain Result ---\n{raw_output}\n")
             parsed = self._safe_parse_json(raw_output)
+            if isinstance(parsed, dict):
+                structured_dimensions[name] = parsed
             formatted = self._format_dimension_output(name, parsed)
             print(f"--- Geometry {name} Dimension Result ---\n{formatted}\n")
             results.append(f"--- {name} Dimension ---\n{formatted}\n")
 
         evaluation_report = "\n".join(results)
+        priority_result = compute_full_priority_from_report(structured_dimensions)
+        self._log_priority(priority_result)
         return {
             "report": evaluation_report,
             "student_text": student_text,
+            "priority": priority_result,
+            "structured_report": structured_dimensions,
         }
 
     def ask(self, state: Dict[str, Any], assessment_data: Dict[str, Any], question: str) -> str:
@@ -167,3 +175,15 @@ class GeometrySubjectModule:
         if gap:
             lines.append(f"Most critical gap: {gap}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _log_priority(priority_result: Dict[str, Any]) -> None:
+        """Print geometry priority summary for verification."""
+        if not isinstance(priority_result, dict):
+            print("[Priority] 未能计算出几何维度的优先级结果。")
+            return
+        top_dim = priority_result.get("top_dimension")
+        top_label = priority_result.get("top_label_in_top_dimension")
+        print("[Priority] ===== PRIORITY CHECK =====")
+        print(f"[Priority] Top dimension: {top_dim}")
+        print(f"[Priority] Top label in top dimension: {top_label}")

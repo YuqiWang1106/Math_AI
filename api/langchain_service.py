@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from dotenv import load_dotenv
 
@@ -17,6 +17,7 @@ from .prompts import (
     TUTOR_PROMPT,
     SUBJECT_CLASSIFIER_PROMPT,
 )
+from .priority_report import compute_full_priority_from_report
 from .arithmetic_module import ArithmeticSubjectModule
 from .geometry_module import GeometrySubjectModule
 
@@ -134,6 +135,7 @@ class AlgebraSubjectModule(BaseSubjectModule):
     def evaluate(self, student_id: str, assessment_data: Dict[str, Any]) -> Dict[str, Any]:
         student_text = create_self_assessment_text(assessment_data)
         results = []
+        structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
         for name, prompt_template in self._dimension_prompts.items():
             chain = LLMChain(
@@ -145,11 +147,18 @@ class AlgebraSubjectModule(BaseSubjectModule):
             final_output = self._extract_public_response(output)
             print(f"--- {name} Dimension Result ---\n{final_output}\n")
             results.append(f"--- {name} Dimension ---\n{final_output}\n")
+            parsed_dimension = self._parse_dimension_output(name, final_output)
+            if parsed_dimension:
+                structured_dimensions[name] = parsed_dimension
 
         evaluation_report = "\n\n".join(results)
+        priority_result = compute_full_priority_from_report(structured_dimensions)
+        self._log_priority(priority_result)
         return {
             "report": evaluation_report,
             "student_text": student_text,
+            "priority": priority_result,
+            "structured_report": structured_dimensions,
         }
 
     def ask(self, state: Dict[str, Any], assessment_data: Dict[str, Any], question: str) -> str:
@@ -197,6 +206,67 @@ class AlgebraSubjectModule(BaseSubjectModule):
         state["backend"] = "gpt"
         return chat_chain, True
 
+    @staticmethod
+    def _parse_dimension_output(name: str, text: str) -> Optional[Dict[str, Any]]:
+        """Parse the formatted dimension text into a structured dict."""
+        if not text:
+            return None
+        title = None
+        aspects: List[Dict[str, Any]] = []
+        gap = None
+        current: Optional[Dict[str, Any]] = None
+
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("Title:"):
+                title = line.split(":", 1)[1].strip() or title
+                continue
+            if line.startswith("- Aspect:"):
+                aspect_name = line.split(":", 1)[1].strip()
+                current = {"aspect": aspect_name, "labels": [], "explanation": ""}
+                aspects.append(current)
+                continue
+            if line.startswith("Labels:"):
+                labels_str = line.split(":", 1)[1].strip()
+                labels_str = labels_str.strip("[]")
+                if current is not None:
+                    labels = [label.strip() for label in labels_str.split(",") if label.strip()]
+                    current["labels"] = labels
+                continue
+            if line.startswith("Explanation:"):
+                explanation = line.split(":", 1)[1].strip()
+                if current is not None:
+                    current["explanation"] = explanation
+                continue
+            if line.lower().startswith("most critical"):
+                gap = line.split(":", 1)[1].strip()
+                continue
+            if current is not None:
+                existing = current.get("explanation", "")
+                current["explanation"] = (existing + " " + line).strip()
+
+        if not aspects:
+            return None
+        return {
+            "title": title or f"{name} Dimension",
+            "aspects": aspects,
+            "most_critical_gap": gap or "",
+        }
+
+    @staticmethod
+    def _log_priority(priority_result: Dict[str, Any]) -> None:
+        """Print algebra priority summary for verification."""
+        if not isinstance(priority_result, dict):
+            print("[Priority] 未能计算出代数维度的优先级结果。")
+            return
+        top_dim = priority_result.get("top_dimension")
+        top_label = priority_result.get("top_label_in_top_dimension")
+        print("[Priority] ===== PRIORITY CHECK =====")
+        print(f"[Priority] Top dimension: {top_dim}")
+        print(f"[Priority] Top label in top dimension: {top_label}")
+
 
 class MathAgentOrchestrator:
     """Coordinates subject detection and delegates to the appropriate subject module."""
@@ -217,6 +287,8 @@ class MathAgentOrchestrator:
             "student_text": evaluation_payload.get("student_text", ""),
             "raw_json_str": str(assessment_data),
             "assessment_data": assessment_data,
+            "priority": evaluation_payload.get("priority"),
+            "structured_report": evaluation_payload.get("structured_report"),
             "agent": None,
             "backend": None,
         }
