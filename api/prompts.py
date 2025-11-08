@@ -100,6 +100,30 @@ Answer:
 """
 
 
+PREFERENCE_CLASSIFIER_PROMPT = """
+You are a multi-disciplinary study-plan classifier. Given a free-form learner preference, identify:
+1. The broad academic domain (e.g., mathematics, science, humanities, engineering, finance, wellness, general-learning).
+2. The most specific branch or subtopic you can infer within that domain (e.g., algebra, classical_mechanics, renaissance_history).
+
+Return strict JSON with keys: "domain" (lowercase snake_case), "branch" (lowercase snake_case), "confidence" (0.0-1.0 float), "reasoning" (concise string).
+
+Available domain -> branch anchors (not exhaustive, expand when confident):
+- mathematics: [algebra, geometry, arithmetic, calculus, statistics, number_theory, discrete_math, general_math]
+- science: [physics, classical_mechanics, electromagnetism, chemistry, biology, earth_science, astronomy]
+- engineering: [electrical, mechanical, civil, computer, aerospace, chemical]
+- finance: [personal_finance, investing, budgeting, accounting, corporate_finance]
+- humanities: [philosophy, literature, history, art_history, linguistics]
+- wellness: [mental_health, physical_health, nutrition, mindfulness]
+- general-learning: [study_skills, career_planning, goal_setting]
+
+If the text references future schooling, budgeting, or planning, still choose the closest domain + branch—even if it is finance or general-learning.
+If unsure, set domain="general-learning" and branch="exploratory".
+
+Learner preference:
+{{ preference_text }}
+"""
+
+
 FACTS_PROMPT = """
 You are a strict, objective algebra self-assessment evaluator working ONLY on the Facts dimension.
 

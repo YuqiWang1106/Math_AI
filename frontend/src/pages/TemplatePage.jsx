@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import '../css/TemplatePage.css';
 
@@ -7,12 +7,29 @@ function Template_Page() {
 
   const [studentId, setStudentId] = useState("");
   const [problem, setProblem] = useState("");
+  const [preferenceMeta, setPreferenceMeta] = useState(null);
   const [knowledgeTypes, setKnowledgeTypes] = useState([
     { type: "facts", examples: "", uncertainties: "" },
     { type: "strategies", examples: "", uncertainties: "" },
     { type: "procedures", examples: "", uncertainties: "" },
     { type: "rationales", examples: "", uncertainties: "" },
   ]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("preferenceMeta");
+      if (raw) {
+        setPreferenceMeta(JSON.parse(raw));
+      }
+    } catch (err) {
+      console.error("Failed to load preference metadata", err);
+    }
+  }, []);
+
+  const formatLabel = (value, fallback = "待分类") => {
+    if (!value) return fallback;
+    return value.replace(/_/g, " ");
+  };
 
   // Handle Knowledge Dimension Input Change
   const handleChangeKT = (index, field, value) => {
@@ -25,6 +42,7 @@ function Template_Page() {
     const payload = {
       student_id: studentId,
       json_data: {
+        preference_meta: preferenceMeta || null,
         self_assessment: {
           problem,
           knowledge_types: knowledgeTypes,
@@ -39,7 +57,36 @@ function Template_Page() {
   return (
     <div className="container-fluid">
       <div className="row nav-part">
-        This is navbar.
+        <div className="nav-brand">
+          全学科学习空间
+          <span className="nav-brand-subtitle"> · Self-Assessment Studio</span>
+        </div>
+        <div className="nav-meta">
+          <div className="nav-chip">
+            <span className="nav-chip-label">领域</span>
+            <span className="nav-chip-value">
+              {formatLabel(preferenceMeta?.domain)}
+            </span>
+          </div>
+          <div className="nav-chip">
+            <span className="nav-chip-label">分支</span>
+            <span className="nav-chip-value">
+              {formatLabel(preferenceMeta?.branch, "待细化")}
+            </span>
+          </div>
+          <button
+            className="nav-refresh"
+            type="button"
+            onClick={() => navigate("/")}
+          >
+            重新设定偏好
+          </button>
+        </div>
+        {preferenceMeta?.preference && (
+          <div className="nav-question">
+            需求：{preferenceMeta.preference}
+          </div>
+        )}
       </div>
 
       <div className="row main-content-part">

@@ -60,15 +60,16 @@ The API is now available at `http://localhost:8000/`.
 Key endpoints:
 - `POST /api/evaluate/` – produces a subject-specific evaluation report from the student self-assessment JSON.
 - `POST /api/ask/` – continues the tutoring conversation grounded in the stored evaluation.
+- `POST /api/preference/` – classifies an open-ended learner preference into a broad domain (数学/科学/金融等) 与细分分支，供前端展示与路由。
 
 During development you can inspect logs in the terminal to verify which LLM backend (GPT vs Gemini) was used.
 
 ### 2.3 Unified Knowledge + Reasoning Stack
-- All three subject modules (algebra, geometry, arithmetic) now share a common `api/knowledge_hub.py` that injects:
-  - A curated knowledge base plus lightweight retrieval (RAG) against subject corpora.
-  - Dimension-specific few-shot exemplars.
-  - An explicit chain-of-thought checklist the LLM follows before emitting final text.
-- Evaluation prompts and tutor conversations automatically consume the enriched context so every response benefits from the combined techniques without additional wiring in views or front end code.
+- 每个“领域 + 分支”会在 SQLite 表 `api_knowledgebaseentry` 中维护一个结构化的 Knowledge Base，包含 global highlights、RAG snippet、few-shot 样例以及 CoT checklist。
+- `POST /api/preference/` 在识别领域/分支的同时，会调用 LLM（`api/knowledge_base_service.py`）自动生成缺失的知识库，并缓存到数据库；之后所有请求都会直接复用缓存版本。
+- `api/knowledge_hub.py` 会按当前学生的 `preference_meta` 动态拉取对应的 KB，结合检索排序后注入到各学科的评估链与对话链里，实现按需扩展的新学科支持。
+- 如需人工修订知识库，可直接更新 SQLite 中对应记录或编写管理界面；更新后的内容会立即被所有流程读取。
+- 新增管理命令可审查/重建知识库：`python manage.py audit_kb --domain finance --branch budgeting --auto-refresh`。命令会先调用 LLM 体检当前 JSON，若检测到占位符或缺陷则自动重新生成并写回数据库。
 
 ## 3. Frontend Setup
 
@@ -85,9 +86,10 @@ npm start
 The app serves at `http://localhost:3000/` and expects the backend at `http://localhost:8000/`. If you run the backend elsewhere, update the fetch URLs inside `frontend/src/pages/*.jsx`.
 
 ## 4. Typical Development Flow
-- Load or enter a student self-assessment via the UI (stored in `localStorage`).
-- Submit for evaluation; the backend routes to the correct subject module (algebra, arithmetic, or geometry) and stores state for follow-up questions.
-- Ask follow-up questions on the Chat page; the tutor will use GPT first and fall back to Gemini if needed.
+- 首先进入 Preference 页面，输入“想咨询/想规划”的自然语言描述，系统会调用 `/api/preference/` 自动识别领域与分支，并显示在后续页面的导航栏。
+- 跳转到 Self-Assessment 页面，填写具体的题目与知识四维（facts/strategies/procedures/rationales）；该页面会在导航栏展示刚刚识别出的领域与分支，方便跨学科扩展。
+- 提交自评后的数据保存在 `localStorage`，可立即进入 Chat 页面继续提问；后端会根据评估结果和首选学科生成上下文并回答。
+- 聊天过程中仍沿用原有逻辑：优先使用 GPT，必要时回退到 Gemini。
 
 ## 5. Testing and Troubleshooting
 - Run backend tests (none yet, but the command scaffold is ready):

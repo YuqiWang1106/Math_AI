@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -16,11 +17,13 @@ from .prompts import (
     RATIONALES_PROMPT,
     TUTOR_PROMPT,
     SUBJECT_CLASSIFIER_PROMPT,
+    PREFERENCE_CLASSIFIER_PROMPT,
 )
 from .priority_report import compute_full_priority_from_report
 from .arithmetic_module import ArithmeticSubjectModule
 from .geometry_module import GeometrySubjectModule
 from .knowledge_hub import build_reasoning_support, enrich_student_text
+from .knowledge_base_service import get_or_create_branch_kb
 
 
 load_dotenv()
@@ -37,6 +40,117 @@ SUBJECT_CLASSIFIER_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature
 PRIMARY_CHAT_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
 BACKUP_CHAT_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
 GEOMETRY_EVALUATOR_LLM = ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0)
+PREFERENCE_CLASSIFIER_LLM = ChatOpenAI(model_name="gpt-4.1-2025-04-14", temperature=0)
+
+
+_PREFERENCE_KEYWORDS: Dict[str, Dict[str, List[str]]] = {
+    "mathematics": {
+        "algebra": ["algebra", "equation", "linear", "quadratic", "polynomial", "slope"],
+        "geometry": ["geometry", "triangle", "circle", "angle", "coordinate", "diagram"],
+        "arithmetic": ["arithmetic", "fraction", "percent", "ratio", "addition", "subtraction"],
+        "calculus": ["calculus", "derivative", "integral", "limit"],
+        "statistics": ["statistics", "probability", "data", "distribution", "mean", "median"],
+    },
+    "science": {
+        "physics": ["physics", "force", "motion", "mechanics", "velocity"],
+        "chemistry": ["chemistry", "reaction", "molecule", "atom", "compound"],
+        "biology": ["biology", "cell", "genetics", "organism"],
+        "earth_science": ["geology", "earth", "climate", "weather", "planet"],
+    },
+    "engineering": {
+        "mechanical": ["mechanical", "machine", "dynamics"],
+        "electrical": ["electrical", "circuit", "voltage", "signal"],
+        "computer": ["computer engineering", "embedded", "hardware"],
+    },
+    "finance": {
+        "budgeting": ["budget", "expense", "savings", "cost"],
+        "personal_finance": ["personal finance", "debt", "loan", "credit"],
+        "investing": ["investment", "portfolio", "stocks", "returns"],
+    },
+    "humanities": {
+        "history": ["history", "historical", "ancient", "renaissance"],
+        "philosophy": ["philosophy", "ethics", "logic"],
+        "literature": ["literature", "novel", "poetry"],
+    },
+    "wellness": {
+        "mental_health": ["mental health", "stress", "anxiety", "mindfulness"],
+        "physical_health": ["exercise", "fitness", "workout"],
+        "nutrition": ["nutrition", "diet", "meal plan"],
+    },
+    "general-learning": {
+        "career_planning": ["career", "job", "interview"],
+        "goal_setting": ["goal", "plan", "roadmap"],
+        "study_skills": ["study skills", "productivity", "focus"],
+    },
+}
+
+
+def _safe_parse_preference_json(response_text: str) -> Optional[Dict[str, Any]]:
+    text = response_text.strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    try:
+        return json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+
+
+def _fallback_preference_classification(preference_text: str) -> Dict[str, Any]:
+    lowered = preference_text.lower()
+    for domain, topics in _PREFERENCE_KEYWORDS.items():
+        for branch, keywords in topics.items():
+            if any(keyword in lowered for keyword in keywords):
+                return {
+                    "domain": domain,
+                    "branch": branch,
+                    "confidence": 0.5,
+                    "reasoning": f"Keyword match for '{branch}' in {domain}.",
+                }
+    return {
+        "domain": "general-learning",
+        "branch": "exploratory",
+        "confidence": 0.25,
+        "reasoning": "Default fallback classification.",
+    }
+
+
+def classify_preference_query(preference_text: str) -> Dict[str, Any]:
+    if not preference_text:
+        base = _fallback_preference_classification("")
+        entry = get_or_create_branch_kb(base["domain"], base["branch"], preference_text)
+        base["knowledge_base_id"] = entry.id
+        base["knowledge_base_title"] = entry.title
+        return base
+    base_result = _fallback_preference_classification(preference_text)
+    result = base_result.copy()
+    try:
+        chain = LLMChain(
+            llm=PREFERENCE_CLASSIFIER_LLM,
+            prompt=PromptTemplate.from_template(
+                PREFERENCE_CLASSIFIER_PROMPT,
+                template_format="jinja2",
+            ),
+        )
+        raw_output = chain.run(preference_text=preference_text)
+        parsed = _safe_parse_preference_json(raw_output)
+        if parsed and parsed.get("domain"):
+            result = {
+                "domain": parsed.get("domain", base_result["domain"]).lower(),
+                "branch": parsed.get("branch", base_result["branch"]).lower(),
+                "confidence": float(parsed.get("confidence", base_result["confidence"])),
+                "reasoning": parsed.get("reasoning", base_result["reasoning"]),
+            }
+    except Exception as exc:
+        print(f"[PreferenceClassifier] LLM classification failed: {exc}")
+    try:
+        entry = get_or_create_branch_kb(result["domain"], result["branch"], preference_text)
+        result["knowledge_base_id"] = entry.id
+        result["knowledge_base_title"] = entry.title
+    except Exception as exc:
+        print(f"[PreferenceClassifier] Knowledge base ensure failed: {exc}")
+    return result
 
 
 def create_self_assessment_text(assessment: Dict[str, Any]) -> str:
@@ -138,12 +252,18 @@ class AlgebraSubjectModule(BaseSubjectModule):
         results = []
         structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
+        preference_meta = assessment_data.get("preference_meta")
         for name, prompt_template in self._dimension_prompts.items():
             chain = LLMChain(
                 llm=self._evaluator_llm,
                 prompt=PromptTemplate.from_template(prompt_template, template_format="jinja2"),
             )
-            support_block = build_reasoning_support("algebra", name, student_text)
+            support_block = build_reasoning_support(
+                "algebra",
+                name,
+                student_text,
+                preference_meta=preference_meta,
+            )
             enriched_student_text = enrich_student_text(student_text, support_block)
             output = chain.run(student_text=enriched_student_text)
             print(f"--- {name} Chain Result ---\n{output}\n")
@@ -203,6 +323,7 @@ class AlgebraSubjectModule(BaseSubjectModule):
             "algebra",
             "Tutor",
             state.get("student_text", ""),
+            preference_meta=state.get("assessment_data", {}).get("preference_meta"),
         )
         system_prompt = f"{system_prompt}\n\n{tutor_support}\n\nUse the knowledge base, exemplars, and checklist above before crafting each 2-3 sentence reply."
 

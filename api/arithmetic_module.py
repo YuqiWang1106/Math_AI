@@ -48,6 +48,7 @@ class ArithmeticSubjectModule:
         results = []
         structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
+        preference_meta = assessment_data.get("preference_meta")
         for name, prompt in self._dimension_prompts.items():
             rag_context = self._get_context(f"{name}: {student_text}")
             enriched_context = build_reasoning_support(
@@ -55,6 +56,7 @@ class ArithmeticSubjectModule:
                 name,
                 student_text,
                 rag_context=rag_context,
+                preference_meta=preference_meta,
             )
             chain = LLMChain(
                 llm=self._evaluator_llm,
@@ -118,6 +120,7 @@ class ArithmeticSubjectModule:
             "Tutor",
             state.get("student_text", ""),
             rag_context=self._get_context(state.get("student_text", "")),
+            preference_meta=state.get("assessment_data", {}).get("preference_meta"),
         )
         system_prompt = (
             f"{system_prompt}\n\n{tutor_support}\n\n"

@@ -2,7 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .langchain_service import evaluate_assessment, ask_with_memory
+from .langchain_service import (
+    evaluate_assessment,
+    ask_with_memory,
+    classify_preference_query,
+)
 
 
 class EvaluateAPIView(APIView):
@@ -46,6 +50,25 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
+
+class PreferenceClassifierAPIView(APIView):
+    """
+    POST /api/preference/
+    Body:
+    {
+        "preference": "I want to plan a four-year university budget..."
+    }
+    """
+
+    def post(self, request):
+        preference_text = request.data.get("preference")
+        if not preference_text:
+            return Response({"error": "Missing preference text"}, status=400)
+        try:
+            result = classify_preference_query(preference_text)
+            return Response(result, status=200)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 
 
