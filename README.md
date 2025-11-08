@@ -63,6 +63,13 @@ Key endpoints:
 
 During development you can inspect logs in the terminal to verify which LLM backend (GPT vs Gemini) was used.
 
+### 2.3 Unified Knowledge + Reasoning Stack
+- All three subject modules (algebra, geometry, arithmetic) now share a common `api/knowledge_hub.py` that injects:
+  - A curated knowledge base plus lightweight retrieval (RAG) against subject corpora.
+  - Dimension-specific few-shot exemplars.
+  - An explicit chain-of-thought checklist the LLM follows before emitting final text.
+- Evaluation prompts and tutor conversations automatically consume the enriched context so every response benefits from the combined techniques without additional wiring in views or front end code.
+
 ## 3. Frontend Setup
 
 Open a second terminal (keep the backend running) and install Node dependencies:

@@ -20,6 +20,7 @@ from .prompts import (
 from .priority_report import compute_full_priority_from_report
 from .arithmetic_module import ArithmeticSubjectModule
 from .geometry_module import GeometrySubjectModule
+from .knowledge_hub import build_reasoning_support, enrich_student_text
 
 
 load_dotenv()
@@ -142,7 +143,9 @@ class AlgebraSubjectModule(BaseSubjectModule):
                 llm=self._evaluator_llm,
                 prompt=PromptTemplate.from_template(prompt_template, template_format="jinja2"),
             )
-            output = chain.run(student_text=student_text)
+            support_block = build_reasoning_support("algebra", name, student_text)
+            enriched_student_text = enrich_student_text(student_text, support_block)
+            output = chain.run(student_text=enriched_student_text)
             print(f"--- {name} Chain Result ---\n{output}\n")
             final_output = self._extract_public_response(output)
             print(f"--- {name} Dimension Result ---\n{final_output}\n")
@@ -196,6 +199,12 @@ class AlgebraSubjectModule(BaseSubjectModule):
             prior_summary=state["evaluation"],
             raw_json=state["raw_json_str"],
         )
+        tutor_support = build_reasoning_support(
+            "algebra",
+            "Tutor",
+            state.get("student_text", ""),
+        )
+        system_prompt = f"{system_prompt}\n\n{tutor_support}\n\nUse the knowledge base, exemplars, and checklist above before crafting each 2-3 sentence reply."
 
         memory = ConversationBufferMemory(return_messages=True)
         memory.chat_memory.add_message({"role": "system", "content": system_prompt})

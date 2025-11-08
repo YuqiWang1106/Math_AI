@@ -12,6 +12,7 @@ from .geometry_prompts import (
     route_geometry_topic,
 )
 from .priority_report import compute_full_priority_from_report
+from .knowledge_hub import build_reasoning_support
 
 
 GEOMETRY_TUTOR_PROMPT = """
@@ -69,16 +70,25 @@ class GeometrySubjectModule:
         )
         student_text = self._assessment_text_fn(assessment_data)
         topic_key = route_geometry_topic(problem, student_text)
-        context = build_geometry_context(topic_key, include_global=True)
+        geometry_context = build_geometry_context(topic_key, include_global=True)
 
         results = []
         structured_dimensions: Dict[str, Dict[str, Any]] = {}
         for name, prompt_template in self._dimension_prompts.items():
+            enriched_context = build_reasoning_support(
+                "geometry",
+                name,
+                student_text,
+                rag_context=geometry_context,
+            )
             chain = LLMChain(
                 llm=self._evaluator_llm,
                 prompt=prompt_template,
             )
-            raw_output = chain.run(student_text=student_text, context=context)
+            raw_output = chain.run(
+                student_text=student_text,
+                context=enriched_context,
+            )
             print(f"--- Geometry {name} Chain Result ---\n{raw_output}\n")
             parsed = self._safe_parse_json(raw_output)
             if isinstance(parsed, dict):
@@ -130,6 +140,19 @@ class GeometrySubjectModule:
         system_prompt = GEOMETRY_TUTOR_PROMPT.format(
             prior_summary=state["evaluation"],
             raw_json=state["raw_json_str"],
+        )
+        tutor_support = build_reasoning_support(
+            "geometry",
+            "Tutor",
+            state.get("student_text", ""),
+            rag_context=build_geometry_context(
+                route_geometry_topic("", state.get("student_text", "")),
+                include_global=True,
+            ),
+        )
+        system_prompt = (
+            f"{system_prompt}\n\n{tutor_support}\n\n"
+            "Process the checklist above before answering with 2-3 tailored sentences."
         )
         memory = ConversationBufferMemory(return_messages=True)
         memory.chat_memory.add_message({"role": "system", "content": system_prompt})

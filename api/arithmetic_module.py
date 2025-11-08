@@ -14,6 +14,7 @@ from .arithmetic_prompts import (
     build_retriever,
 )
 from .priority_report import compute_full_priority_from_report
+from .knowledge_hub import build_reasoning_support
 
 
 class ArithmeticSubjectModule:
@@ -48,12 +49,18 @@ class ArithmeticSubjectModule:
         structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
         for name, prompt in self._dimension_prompts.items():
-            context = self._get_context(f"{name}: {student_text}")
+            rag_context = self._get_context(f"{name}: {student_text}")
+            enriched_context = build_reasoning_support(
+                "arithmetic",
+                name,
+                student_text,
+                rag_context=rag_context,
+            )
             chain = LLMChain(
                 llm=self._evaluator_llm,
                 prompt=prompt,
             )
-            raw_output = chain.run(student_text=student_text, context=context)
+            raw_output = chain.run(student_text=student_text, context=enriched_context)
             print(f"--- Arithmetic {name} Chain Result ---\n{raw_output}\n")
             parsed_json = self._safe_parse_json(raw_output)
             if isinstance(parsed_json, dict):
@@ -105,6 +112,16 @@ class ArithmeticSubjectModule:
         system_prompt = ARITHMETIC_TUTOR_PROMPT.format(
             prior_summary=state["evaluation"],
             raw_json=state["raw_json_str"],
+        )
+        tutor_support = build_reasoning_support(
+            "arithmetic",
+            "Tutor",
+            state.get("student_text", ""),
+            rag_context=self._get_context(state.get("student_text", "")),
+        )
+        system_prompt = (
+            f"{system_prompt}\n\n{tutor_support}\n\n"
+            "Deliberate with the checklist above before responding concisely."
         )
 
         memory = ConversationBufferMemory(return_messages=True)
