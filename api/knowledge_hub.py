@@ -72,13 +72,13 @@ def _format_cot_checklist(kb_content: Dict[str, Any]) -> str:
     return "\n".join(f"{idx}. {step}" for idx, step in enumerate(steps, start=1))
 
 
-def build_reasoning_support(
+def collect_support_components(
     subject: str,
     dimension: str,
     query: str,
     rag_context: Optional[str] = None,
     preference_meta: Optional[Dict[str, Any]] = None,
-) -> str:
+) -> Dict[str, Any]:
     domain, branch = _derive_domain_branch(subject, preference_meta)
     preference_text = (preference_meta or {}).get("preference", "")
     entry = get_or_create_branch_kb(domain, branch, preference_text)
@@ -94,10 +94,10 @@ def build_reasoning_support(
 
     kb_block = _format_block("Knowledge Base Highlights", global_highlights)
     rag_block = _format_block("RAG Evidence", rag_hits)
-    few_shot_block = format_few_shot_examples(kb_content, dimension, max_examples=2)
+    few_shot_block = format_few_shot_examples(kb_content, dimension, max_examples=3)
     cot_block = _format_cot_checklist(kb_content)
 
-    return (
+    support_text = (
         f"{kb_block}\n\n"
         f"{rag_block}\n\n"
         "Few-Shot Exemplars:\n"
@@ -105,6 +105,34 @@ def build_reasoning_support(
         "Chain-of-Thought Checklist:\n"
         f"{cot_block}"
     )
+
+    return {
+        "support_text": support_text,
+        "kb_content": kb_content,
+        "highlights": global_highlights,
+        "rag_hits": rag_hits,
+        "few_shot_text": few_shot_block,
+        "cot_text": cot_block,
+        "domain": domain,
+        "branch": branch,
+    }
+
+
+def build_reasoning_support(
+    subject: str,
+    dimension: str,
+    query: str,
+    rag_context: Optional[str] = None,
+    preference_meta: Optional[Dict[str, Any]] = None,
+) -> str:
+    components = collect_support_components(
+        subject,
+        dimension,
+        query,
+        rag_context=rag_context,
+        preference_meta=preference_meta,
+    )
+    return components["support_text"]
 
 
 def enrich_student_text(student_text: str, support_block: str) -> str:
@@ -115,5 +143,6 @@ def enrich_student_text(student_text: str, support_block: str) -> str:
 
 __all__ = [
     "build_reasoning_support",
+    "collect_support_components",
     "enrich_student_text",
 ]

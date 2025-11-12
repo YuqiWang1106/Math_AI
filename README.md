@@ -71,6 +71,11 @@ During development you can inspect logs in the terminal to verify which LLM back
 - 如需人工修订知识库，可直接更新 SQLite 中对应记录或编写管理界面；更新后的内容会立即被所有流程读取。
 - 新增管理命令可审查/重建知识库：`python manage.py audit_kb --domain finance --branch budgeting --auto-refresh`。命令会先调用 LLM 体检当前 JSON，若检测到占位符或缺陷则自动重新生成并写回数据库。
 
+### 2.4 多学科动态评估
+- `api/langchain_service.py` 现在只维护一个 `GeneralSubjectModule`：它会读取 `preference_meta` 中的 `domain/branch`（若缺失则回退到 LLM 分类），然后用知识库里的 highlights / RAG snippets / few-shot / CoT checklist 拼装 Prompt，按 Facts/Strategies/Procedures/Rationales 四个维度生成与数学分支相同格式的 labeling report。
+- 聊天系统也复用同一套知识库，当 Tutor 初始化时会把对应领域/分支的 highlights 与 CoT checklist 填进提示词，确保回答逻辑与数学版本保持一致，只是内容换成了新的学科语料。
+- 因此不再需要旧的 `arithmetic_*`、`geometry_*` 静态配置文件；任何新的领域/分支只要通过 Preference → Knowledge Base 流程生成一次，即可自动获得 few-shot、CoT、RAG 能力，并贯穿 evaluation 与 chat。
+
 ## 3. Frontend Setup
 
 Open a second terminal (keep the backend running) and install Node dependencies:

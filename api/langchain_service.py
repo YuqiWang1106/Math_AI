@@ -11,18 +11,13 @@ from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 
 from .prompts import (
-    FACTS_PROMPT,
-    STRATEGIES_PROMPT,
-    PROCEDURES_PROMPT,
-    RATIONALES_PROMPT,
+    DIMENSION_PROMPT,
     TUTOR_PROMPT,
     SUBJECT_CLASSIFIER_PROMPT,
     PREFERENCE_CLASSIFIER_PROMPT,
 )
 from .priority_report import compute_full_priority_from_report
-from .arithmetic_module import ArithmeticSubjectModule
-from .geometry_module import GeometrySubjectModule
-from .knowledge_hub import build_reasoning_support, enrich_student_text
+from .knowledge_hub import build_reasoning_support, collect_support_components, enrich_student_text
 from .knowledge_base_service import get_or_create_branch_kb
 
 
@@ -215,8 +210,9 @@ class PlaceholderSubjectModule(BaseSubjectModule):
         )
 
 
-class AlgebraSubjectModule(BaseSubjectModule):
-    """Algebra-specific evaluation and tutoring pipeline."""
+
+class GeneralSubjectModule(BaseSubjectModule):
+    """General evaluation and tutoring pipeline driven by dynamic knowledge bases."""
 
     def __init__(
         self,
@@ -224,16 +220,11 @@ class AlgebraSubjectModule(BaseSubjectModule):
         primary_chat_llm: ChatOpenAI,
         backup_chat_llm: ChatGoogleGenerativeAI,
     ):
-        self.subject_name = "algebra"
+        self.subject_name = "general"
         self._evaluator_llm = evaluator_llm
         self._primary_chat_llm = primary_chat_llm
         self._backup_chat_llm = backup_chat_llm
-        self._dimension_prompts = {
-            "Facts": FACTS_PROMPT,
-            "Strategies": STRATEGIES_PROMPT,
-            "Procedures": PROCEDURES_PROMPT,
-            "Rationales": RATIONALES_PROMPT,
-        }
+        self._dimensions = ["Facts", "Strategies", "Procedures", "Rationales"]
 
     @staticmethod
     def _extract_public_response(text: str) -> str:
@@ -247,25 +238,55 @@ class AlgebraSubjectModule(BaseSubjectModule):
             return text[start + len(start_tag):end].strip()
         return text.strip()
 
+    def _ensure_domain_branch(self, assessment_data: Dict[str, Any]) -> Tuple[str, str]:
+        preference_meta = assessment_data.get("preference_meta") or {}
+        domain = preference_meta.get("domain") or "general-learning"
+        branch = preference_meta.get("branch") or "exploratory"
+        return domain, branch
+
     def evaluate(self, student_id: str, assessment_data: Dict[str, Any]) -> Dict[str, Any]:
+        domain, branch = self._ensure_domain_branch(assessment_data)
         student_text = create_self_assessment_text(assessment_data)
-        results = []
+        results: List[str] = []
         structured_dimensions: Dict[str, Dict[str, Any]] = {}
 
-        preference_meta = assessment_data.get("preference_meta")
-        for name, prompt_template in self._dimension_prompts.items():
-            chain = LLMChain(
-                llm=self._evaluator_llm,
-                prompt=PromptTemplate.from_template(prompt_template, template_format="jinja2"),
-            )
-            support_block = build_reasoning_support(
-                "algebra",
+        for name in self._dimensions:
+            support = collect_support_components(
+                domain,
                 name,
                 student_text,
-                preference_meta=preference_meta,
+                preference_meta=assessment_data.get("preference_meta"),
             )
-            enriched_student_text = enrich_student_text(student_text, support_block)
-            output = chain.run(student_text=enriched_student_text)
+            print(f"[Eval] ===== Dimension: {name} =====")
+            kb_highlights = "\n".join(f"- {item}" for item in support["highlights"]) or "- (none)"
+            rag_evidence = "\n".join(f"- {hit}" for hit in support["rag_hits"]) or "- (none)"
+            print(f"[Eval] Highlights:\n{kb_highlights}")
+            print(f"[Eval] RAG Evidence:\n{rag_evidence}")
+            print(f"[Eval] Few-Shot Block:\n{support['few_shot_text']}")
+            print(f"[Eval] CoT Checklist:\n{support['cot_text']}")
+
+            chain = LLMChain(llm=self._evaluator_llm, prompt=DIMENSION_PROMPT)
+            prompt_preview = DIMENSION_PROMPT.format(
+                domain=domain,
+                branch=branch,
+                dimension_name=name,
+                kb_highlights=kb_highlights,
+                rag_evidence=rag_evidence,
+                few_shot_block=support["few_shot_text"],
+                cot_checklist=support["cot_text"],
+                student_text=student_text,
+            )
+            print(f"[Eval] Prompt Preview:\n{prompt_preview}")
+            output = chain.run(
+                domain=domain,
+                branch=branch,
+                dimension_name=name,
+                kb_highlights=kb_highlights,
+                rag_evidence=rag_evidence,
+                few_shot_block=support["few_shot_text"],
+                cot_checklist=support["cot_text"],
+                student_text=student_text,
+            )
             print(f"--- {name} Chain Result ---\n{output}\n")
             final_output = self._extract_public_response(output)
             print(f"--- {name} Dimension Result ---\n{final_output}\n")
@@ -315,17 +336,22 @@ class AlgebraSubjectModule(BaseSubjectModule):
         if existing_agent:
             return existing_agent, False
 
-        system_prompt = TUTOR_PROMPT.format(
-            prior_summary=state["evaluation"],
-            raw_json=state["raw_json_str"],
-        )
-        tutor_support = build_reasoning_support(
-            "algebra",
+        domain, branch = self._ensure_domain_branch(assessment_data)
+        tutor_support = collect_support_components(
+            domain,
             "Tutor",
             state.get("student_text", ""),
-            preference_meta=state.get("assessment_data", {}).get("preference_meta"),
+            preference_meta=assessment_data.get("preference_meta"),
         )
-        system_prompt = f"{system_prompt}\n\n{tutor_support}\n\nUse the knowledge base, exemplars, and checklist above before crafting each 2-3 sentence reply."
+        kb_highlights = "\n".join(f"- {item}" for item in tutor_support["highlights"]) or "- (none)"
+        system_prompt = TUTOR_PROMPT.format(
+            domain=domain,
+            branch=branch,
+            kb_highlights=kb_highlights,
+            cot_checklist=tutor_support["cot_text"],
+            raw_json=state["raw_json_str"],
+            prior_summary=state["evaluation"],
+        )
 
         memory = ConversationBufferMemory(return_messages=True)
         memory.chat_memory.add_message({"role": "system", "content": system_prompt})
@@ -338,7 +364,6 @@ class AlgebraSubjectModule(BaseSubjectModule):
 
     @staticmethod
     def _parse_dimension_output(name: str, text: str) -> Optional[Dict[str, Any]]:
-        """Parse the formatted dimension text into a structured dict."""
         if not text:
             return None
         title = None
@@ -387,9 +412,8 @@ class AlgebraSubjectModule(BaseSubjectModule):
 
     @staticmethod
     def _log_priority(priority_result: Dict[str, Any]) -> None:
-        """Print algebra priority summary for verification."""
         if not isinstance(priority_result, dict):
-            print("[Priority] 未能计算出代数维度的优先级结果。")
+            print("[Priority] 未能计算出维度优先级结果。")
             return
         top_dim = priority_result.get("top_dimension")
         top_label = priority_result.get("top_label_in_top_dimension")
@@ -398,21 +422,22 @@ class AlgebraSubjectModule(BaseSubjectModule):
         print(f"[Priority] Top label in top dimension: {top_label}")
 
 
-class MathAgentOrchestrator:
-    """Coordinates subject detection and delegates to the appropriate subject module."""
+class LearningOrchestrator:
+    """Coordinates domain detection and delegates to the general module."""
 
-    def __init__(self, modules: Dict[str, Any], classifier_llm: ChatOpenAI):
-        self._modules = modules
+    def __init__(self, module: GeneralSubjectModule, classifier_llm: ChatOpenAI):
+        self._module = module
         self._classifier_llm = classifier_llm
         self._student_states: Dict[str, Dict[str, Any]] = {}
 
     def evaluate(self, student_id: str, assessment_data: Dict[str, Any]) -> str:
-        subject = self._determine_subject(assessment_data)
-        module = self._modules[subject]
-        evaluation_payload = module.evaluate(student_id, assessment_data)
+        preference_meta = self._ensure_preference_meta(assessment_data)
+        assessment_data["preference_meta"] = preference_meta
+        evaluation_payload = self._module.evaluate(student_id, assessment_data)
 
         self._student_states[student_id] = {
-            "subject": subject,
+            "domain": preference_meta.get("domain"),
+            "branch": preference_meta.get("branch"),
             "evaluation": evaluation_payload["report"],
             "student_text": evaluation_payload.get("student_text", ""),
             "raw_json_str": str(assessment_data),
@@ -428,24 +453,27 @@ class MathAgentOrchestrator:
     def ask(self, student_id: str, assessment_data: Dict[str, Any], question: str) -> str:
         state = self._student_states.get(student_id)
         raw_json_str = str(assessment_data)
-        if state and state.get("raw_json_str") == raw_json_str:
-            subject = state["subject"]
-        else:
-            subject = self._determine_subject(assessment_data)
-
-        if state is None or state.get("subject") != subject:
-            # Fresh student or subject changed: run evaluation anew.
+        if not state or state.get("raw_json_str") != raw_json_str:
             evaluation_report = self.evaluate(student_id, assessment_data)
             state = self._student_states[student_id]
             state["evaluation"] = evaluation_report
 
-        module = self._modules[subject]
+        assessment_data["preference_meta"] = self._ensure_preference_meta(assessment_data)
         state["assessment_data"] = assessment_data
         state["raw_json_str"] = raw_json_str
-        return module.ask(state, assessment_data, question)
+        return self._module.ask(state, assessment_data, question)
 
-    def _determine_subject(self, assessment_data: Dict[str, Any]) -> str:
-        """Determine subject via LLM classifier with heuristic fallback."""
+    def _ensure_preference_meta(self, assessment_data: Dict[str, Any]) -> Dict[str, Any]:
+        preference_meta = assessment_data.get("preference_meta")
+        if preference_meta:
+            return preference_meta
+        subject = self._determine_subject(assessment_data) or "algebra"
+        return {
+            "domain": "mathematics",
+            "branch": subject,
+        }
+
+    def _determine_subject(self, assessment_data: Dict[str, Any]) -> Optional[str]:
         subject = self._classify_subject_with_llm(assessment_data)
         if subject:
             print(f"[SubjectClassifier] LLM classified subject as '{subject}'.")
@@ -455,7 +483,6 @@ class MathAgentOrchestrator:
         return subject
 
     def _classify_subject_with_llm(self, assessment_data: Dict[str, Any]) -> Optional[str]:
-        """Use an LLM to classify the subject; return None if classification fails."""
         try:
             student_text = create_self_assessment_text(assessment_data)
             chain = LLMChain(
@@ -470,21 +497,17 @@ class MathAgentOrchestrator:
                 return None
             normalized = raw_response.strip().lower()
             token = normalized.split()[0].strip(",.?!")
-            if token in self._modules:
-                return token
+            return token
         except Exception:
             return None
-        return None
 
     def _fallback_subject(self, assessment_data: Dict[str, Any]) -> str:
-        """Keyword heuristic used if the LLM classifier is unavailable."""
         problem = ""
         self_assessment = assessment_data.get("self_assessment", {})
         if isinstance(self_assessment, dict):
             problem = self_assessment.get("problem", "") or ""
 
         lowered = problem.lower()
-
         geometry_keywords = ["triangle", "angle", "polygon", "circle", "area", "perimeter"]
         arithmetic_keywords = ["fraction", "decimal", "integer", "percent", "ratio"]
 
@@ -492,33 +515,17 @@ class MathAgentOrchestrator:
             return "geometry"
         if any(keyword in lowered for keyword in arithmetic_keywords):
             return "arithmetic"
-
         return "algebra"
 
 
-_ORCHESTRATOR = MathAgentOrchestrator(
-    modules={
-        "algebra": AlgebraSubjectModule(
-            PRIMARY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-        ),
-        "arithmetic": ArithmeticSubjectModule(
-            PRIMARY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-            create_self_assessment_text,
-        ),
-        "geometry": GeometrySubjectModule(
-            GEOMETRY_EVALUATOR_LLM,
-            PRIMARY_CHAT_LLM,
-            BACKUP_CHAT_LLM,
-            create_self_assessment_text,
-        ),
-    },
+_ORCHESTRATOR = LearningOrchestrator(
+    module=GeneralSubjectModule(
+        PRIMARY_EVALUATOR_LLM,
+        PRIMARY_CHAT_LLM,
+        BACKUP_CHAT_LLM,
+    ),
     classifier_llm=SUBJECT_CLASSIFIER_LLM,
 )
-
 
 def evaluate_assessment(student_id: str, assessment_data: Dict[str, Any]) -> str:
     """Evaluate a student's self-assessment by routing to the correct subject module."""
