@@ -77,10 +77,10 @@ const handleAsk = async () => {
       {/* Header Section */}
       <div className="chat-header">
         <div className="chat-student-info">
-          <h3 className="chat-title">AI Math Tutor</h3>
+          <h3 className="chat-title">AI Health & Stress Coach</h3>
           <div className="chat-student-details">
-            <span className="chat-student-id">Student: {assessment.student_id}</span>
-            <span className="chat-problem-text">Problem: {assessment.json_data.self_assessment.problem}</span>
+            <span className="chat-student-id">User: {assessment.student_id}</span>
+            <span className="chat-problem-text">Focus: {assessment.json_data.self_assessment.problem}</span>
           </div>
         </div>
       </div>
@@ -91,8 +91,8 @@ const handleAsk = async () => {
     {chatHistory.length === 0 ? (
         <div className="chat-welcome">
         <div className="chat-welcome-icon">🤖</div>
-        <h4>Welcome to AI Math Tutor!</h4>
-        <p>Ask me anything about your math problem. I'm here to help you learn step by step.</p>
+        <h4>Welcome to your Stress Coach</h4>
+        <p>Ask anything about stress, coping strategies, or your self-assessment. I'm here to support your well-being step by step.</p>
         </div>
     ) : (
         chatHistory.map((entry) => (

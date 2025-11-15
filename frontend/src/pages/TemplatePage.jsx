@@ -39,7 +39,7 @@ function Template_Page() {
   return (
     <div className="container-fluid">
       <div className="row nav-part">
-        This is navbar.
+        Health Chatbot
       </div>
 
       <div className="row main-content-part">

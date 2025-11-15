@@ -66,7 +66,7 @@ def create_self_assessment_text(assessment: Dict[str, Any]) -> str:
 
 
 class BaseSubjectModule:
-    """Abstract interface for a math subject module."""
+    """Abstract interface for a subject module."""
 
     subject_name: str
 
