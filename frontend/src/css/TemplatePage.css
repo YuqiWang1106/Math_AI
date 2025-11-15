@@ -250,6 +250,64 @@ textarea.form-control {
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
+.btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+  padding: 1rem 2.5rem;
+  box-shadow: 0 4px 15px rgba(148, 163, 184, 0.4);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(148, 163, 184, 0.6);
+  background: #d4d4d8;
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(148, 163, 184, 0.4);
+}
+
+/* Incomplete Assessment Modal */
+.incomplete-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.incomplete-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.incomplete-modal-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #0f172a;
+}
+
+.incomplete-modal-text {
+  font-size: 0.95rem;
+  color: #475569;
+  margin-bottom: 0.75rem;
+}
+
+.incomplete-modal-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 /* Animations */
 @keyframes fadeInUp {
   to {

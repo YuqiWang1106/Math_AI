@@ -13,12 +13,27 @@ function Template_Page() {
     { type: "procedures", examples: "", uncertainties: "" },
     { type: "rationales", examples: "", uncertainties: "" },
   ]);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
 
   // Handle Knowledge Dimension Input Change
   const handleChangeKT = (index, field, value) => {
     const updated = [...knowledgeTypes];
     updated[index][field] = value;
     setKnowledgeTypes(updated);
+  };
+
+  const hasEmptyRequiredFields = () => {
+    if (!studentId.trim()) return true;
+    if (!problem.trim()) return true;
+    // 这里只把 examples 当作必填项，uncertainties 仍然视为可选
+    if (knowledgeTypes.some((kt) => !kt.examples.trim())) return true;
+    return false;
+  };
+
+  const proceedToChat = (payload) => {
+    localStorage.setItem("assessmentData", JSON.stringify(payload));
+    navigate("/chat");
   };
 
   const handleSubmit = async () => {
@@ -31,9 +46,27 @@ function Template_Page() {
         },
       },
     };
-    // Store in local storage
-    localStorage.setItem("assessmentData", JSON.stringify(payload));
-    navigate("/chat");
+
+    if (hasEmptyRequiredFields()) {
+      setPendingPayload(payload);
+      setShowIncompleteModal(true);
+      return;
+    }
+
+    proceedToChat(payload);
+  };
+
+  const handleContinueAnyway = () => {
+    if (pendingPayload) {
+      proceedToChat(pendingPayload);
+      setPendingPayload(null);
+      setShowIncompleteModal(false);
+    }
+  };
+
+  const handleBackToEdit = () => {
+    setShowIncompleteModal(false);
+    setPendingPayload(null);
   };
 
   return (
@@ -108,6 +141,38 @@ Use the above example of a self-assessment for colds and complete one for yourse
           </div>
         </div>
       </div>
+
+      {showIncompleteModal && (
+        <div className="incomplete-modal-backdrop">
+          <div className="incomplete-modal">
+            <h3 className="incomplete-modal-title">Incomplete self-assessment</h3>
+            <p className="incomplete-modal-text">
+              We noticed that some parts of your self-assessment are still empty.
+              We <strong>recommend</strong> filling in as much as you can so the
+              chatbot can give more helpful guidance.
+            </p>
+            <p className="incomplete-modal-text">
+              You can go back to add more details, or continue to the chat anyway.
+            </p>
+            <div className="incomplete-modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleBackToEdit}
+              >
+                Go back
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleContinueAnyway}
+              >
+                Continue anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
