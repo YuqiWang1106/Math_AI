@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import '../css/ChatPage.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
 function ChatPage() {
   const [assessment, setAssessment] = useState(null);
   const [question, setQuestion] = useState("");
@@ -37,7 +39,7 @@ const handleAsk = async () => {
   setLoading(true);       
 
   try {
-    const res  = await fetch("http://localhost:8000/api/ask/", {
+    const res  = await fetch(`${API_BASE_URL}/api/ask/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
