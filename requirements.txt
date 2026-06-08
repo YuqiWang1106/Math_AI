@@ -2,5 +2,8 @@ asgiref==3.8.1
 Django==5.2.3
 django-cors-headers==4.7.0
 djangorestframework==3.16.0
+langchain==0.3.26
+langchain-openai==0.3.27
+python-dotenv==1.1.1
 sqlparse==0.5.3
 typing_extensions==4.14.0
