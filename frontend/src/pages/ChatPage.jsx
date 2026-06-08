@@ -1,10 +1,13 @@
 // src/pages/ChatPage.jsx
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { askTutor } from "../api/client";
 
 function ChatPage() {
   const [assessment, setAssessment] = useState(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -15,37 +18,41 @@ function ChatPage() {
   }, []);
 
   const handleAsk = async () => {
-    if (!question.trim()) return;
+    if (!question.trim() || !assessment) return;
     setLoading(true);
+    setError("");
     try {
-      const res = await fetch("http://localhost:8000/api/ask/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          student_id: assessment.student_id,
-          question,
-          json_data: assessment.json_data,
-        }),
+      const data = await askTutor({
+        student_id: assessment.student_id,
+        question,
+        json_data: assessment.json_data,
       });
-      const data = await res.json();
       setAnswer(data.response);
-    } catch (error) {
-      console.error("Error asking question:", error);
+      setQuestion("");
+    } catch (err) {
+      setError(err.message || "Error asking question.");
     } finally {
       setLoading(false);
     }
   };
 
   if (!assessment) {
-    return <div className="container">Loading assessment...</div>;
+    return <div className="container mt-4">Loading assessment...</div>;
   }
 
   return (
     <div className="container mt-4">
-      <h3>Student: {assessment.student_id}</h3>
-      <p><strong>Problem:</strong> {assessment.json_data.self_assessment.problem}</p>
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h3>Student: {assessment.student_id}</h3>
+          <p><strong>Problem:</strong> {assessment.json_data.self_assessment.problem}</p>
+        </div>
+        <Link className="btn btn-outline-primary" to={`/growth/${encodeURIComponent(assessment.student_id)}`}>
+          View Growth
+        </Link>
+      </div>
+
+      {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="mb-3">
         <label>Your question:</label>
@@ -55,7 +62,7 @@ function ChatPage() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
         ></textarea>
-        <button className="btn btn-success mt-2" onClick={handleAsk} disabled={loading}>
+        <button className="btn btn-success mt-2" onClick={handleAsk} disabled={loading || !question.trim()}>
           {loading ? "Thinking..." : "Ask AI Tutor"}
         </button>
       </div>
