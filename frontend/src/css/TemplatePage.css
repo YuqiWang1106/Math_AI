@@ -1,0 +1,153 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+.container-fluid {
+  min-height: 100vh;
+}
+
+.nav-part {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d9e1ec;
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 28px;
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.main-content-part {
+  display: flex;
+  min-height: calc(100vh - 65px);
+}
+
+.left-side,
+.right-side {
+  padding: 36px;
+}
+
+.left-side {
+  background: #eef4ff;
+  border-right: 1px solid #d9e1ec;
+  flex: 0 0 36%;
+}
+
+.left-side h2 {
+  font-size: 32px;
+  margin: 0 0 18px;
+}
+
+.left-side p {
+  color: #435268;
+  font-size: 16px;
+  line-height: 1.7;
+  margin: 0 0 18px;
+}
+
+.right-side {
+  background: #ffffff;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.right-side h3 {
+  font-size: 24px;
+  margin: 0 0 24px;
+}
+
+.mb-3 {
+  margin-bottom: 20px;
+}
+
+label {
+  color: #2e3b4f;
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.form-control {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  display: block;
+  font: inherit;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+textarea.form-control {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.mt-1 {
+  margin-top: 8px;
+}
+
+.text-end {
+  text-align: right;
+}
+
+.btn {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 11px 16px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.btn-primary {
+  background: #1f6feb;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #e8eef7;
+  color: #172033;
+}
+
+.assessment-error {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  color: #9f1239;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+}
+
+@media (max-width: 900px) {
+  .main-content-part {
+    flex-direction: column;
+  }
+
+  .left-side,
+  .right-side {
+    flex: auto;
+    padding: 24px;
+  }
+
+  .left-side {
+    border-right: 0;
+    border-bottom: 1px solid #d9e1ec;
+  }
+}
